@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+Script for preprocessing data.
+
+Use `makeData.py -h` to see an auto-generated description of advanced options.
+"""
+
 import numpy as np
 from pybedtools import BedTool
 import pyfasta
@@ -119,7 +125,7 @@ def main():
     save_data(positive_bed, x, y, output_dir, clobber)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     See module-level docstring for a description of the script.
     """
