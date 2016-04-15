@@ -17,7 +17,8 @@ import os
 import errno
 import argparse
 
-def save_data(positive_bed, x, y, output_dir, clobber):
+
+def save_data(positive_bed, x_seq, x_bws, y, output_dir, clobber):
     try:  # adapted from dreme.py by T. Bailey
         os.makedirs(output_dir)
     except OSError as exc:
@@ -33,7 +34,8 @@ def save_data(positive_bed, x, y, output_dir, clobber):
     positive_bed.saveas(output_dir + '/windows.bed.gz')
     print 'Saving data'
     f = h5py.File(output_dir + '/data.hdf5', 'w')
-    f.create_dataset('x', data=x, compression='gzip')
+    f.create_dataset('x_seq', data=x_seq, compression='gzip')
+    f.create_dataset('x_bws', data=x_bws, compression='gzip')
     f.create_dataset('y', data=y, compression='gzip')
     f.close()
 
@@ -49,18 +51,20 @@ def get_chrom_features(data):
         x[:, f + 4] = chrom_bws[f][interval.start:interval.stop]
     return x
 
+
 def get_overlaps(beds):
     peak_bed = beds[0]
     positive_bed = BedTool(beds[1])
-    bed_count = positive_bed.intersect(peak_bed, e=True, f=0.5, F=0.5, wa=True, c=True)
-    overlaps = [i.count>0 for i in bed_count]
+    bed_count = positive_bed.intersect(peak_bed, e=True, f=0.5,
+                                       F=0.5, wa=True, c=True, sorted=True)
+    overlaps = [i.count > 0 for i in bed_count]
     return overlaps
 
 
 def get_data(genome, fasta, beds, excludes, bigwigs, recurrent):
     assert beds  # Make sure at least one bed file is present
     chroms = np.loadtxt(genome, usecols=[0], dtype=str)
-    chroms_lens = np.loadtxt(genome,usecols=[1],dtype=np.int64)
+    chroms_lens = np.loadtxt(genome, usecols=[1], dtype=np.int64)
     chroms_lens_dict = dict(zip(chroms, chroms_lens))
     num_beds = len(beds)
     num_bigwigs = len(bigwigs)
@@ -75,14 +79,17 @@ def get_data(genome, fasta, beds, excludes, bigwigs, recurrent):
         print 'Removing excluded regions'
         genome_windows = genome_windows.intersect(excludes, wa=True, v=True)
     # Get a bed file that overlaps at least one interval
+    print 'Sorting BED files'
+    beds = [BedTool(bed).sort() for bed in beds]
     print 'Intersecting genome windows with bed files'
-    merged_targets_bed = BedTool(beds[0])
+    merged_targets_bed = beds[0]
     if len(beds) > 1:
         merged_targets_bed = merged_targets_bed.cat(*beds[1:])
     merged_targets_bed = merged_targets_bed.slop(g=genome, b=1000)
-    positive_bed = genome_windows.intersect(merged_targets_bed,u=True)
+    positive_bed = genome_windows.intersect(merged_targets_bed, u=True).sort()
     num_samples = len(positive_bed)
-    x = np.zeros((num_samples, seq_length, num_channels), dtype=np.float32)
+    x_seq = np.zeros((num_samples, seq_length, 4), dtype=bool)
+    x_bws = np.zeros((num_samples, seq_length, num_bigwigs), dtype=np.float32)
     y = np.zeros((num_samples, num_targets), dtype=bool)
     print 'Number of samples:', num_samples
     print 'Number of targets:', num_targets
@@ -90,49 +97,49 @@ def get_data(genome, fasta, beds, excludes, bigwigs, recurrent):
     # Generate targets
     print 'Generating target array'
     for t in xrange(num_targets):
-        bed_count = positive_bed.intersect(beds[t], e=True, f=0.5, F=0.5, wa=True, c=True)
-        y[:,t] = [i.count for i in bed_count]
+        bed_count = positive_bed.intersect(beds[t], e=True, f=0.5, F=0.5, wa=True, c=True,
+                                           sorted=True)
+        y[:, t] = [i.count for i in bed_count]
     # Generate features
     positive_slop_bed = positive_bed.slop(g=genome, b=400)
     fasta = pyfasta.Fasta(fasta)
     bigwigs = [pyBigWig.open(bw) for bw in bigwigs]
     d = np.array(['A', 'C', 'G', 'T'])
     print 'Generating features array'
-    n = 0
-    for chrom in chroms:
-        print chrom
-        chrom_size = chroms_lens_dict[chrom]
-        # Grab intervals on this chromosome
-        #chrom_intervals = positive_slop_bed.filter(lambda x: x.chrom == chrom)
-        chrom_intervals = list(positive_slop_bed.filter(lambda x: x.chrom == chrom).saveas())
-        num_chrom_intervals = len(chrom_intervals)
-        # Grab FASTA string sequence and convert to one hot matrix
-        print '\tConverting string sequence to one-hot matrix'
-        chrom_s = np.array(list(fasta[chrom][0:chrom_size].upper()))[:,np.newaxis] == d
-        # Grab chromosome sequence arrays for each big wig
-        chrom_bws = []
-        print '\tConverting bigwig chromosome sequences to arrays'
-        for bw in bigwigs:
-            chrom_bw = np.array(bw.values(chrom, 0, chrom_size))
-            # If a value is undefined, impute with
-            # chromosome average (minority undefined) or 0 (majority undefined)
-            chrom_bw_nan = np.isnan(chrom_bw)
-            if chrom_bw_nan.sum() > len(chrom_bw_nan)/2.0:
-                impute_value = 0
-            else:
-                impute_value = np.mean(chrom_bw[~chrom_bw_nan])
-            chrom_bw[chrom_bw_nan] = impute_value
-            chrom_bws.append(chrom_bw)
-        print '\tAdding chromosome data sequences to feature tensor'
-        for interval in chrom_intervals:
-            x[n, :, 0:4] = chrom_s[interval.start:interval.stop,:]
-            for f in xrange(num_bigwigs):
-                x[n, :, f+4] = chrom_bws[f][interval.start:interval.stop]
-            n += 1
+    chrom = None
+    for n, interval in enumerate(positive_slop_bed):
+        if chrom != interval.chrom:
+            chrom = interval.chrom
+            print chrom
+            chrom_size = chroms_lens_dict[chrom]
+            # Grab intervals on this chromosome
+            # chrom_intervals = positive_slop_bed.filter(lambda x: x.chrom == chrom)
+            # chrom_intervals = list(positive_slop_bed.filter(lambda x: x.chrom == chrom).saveas())
+            # num_chrom_intervals = len(chrom_intervals)
+            # Grab FASTA string sequence and convert to one hot matrix
+            print '\tConverting string sequence to one-hot matrix'
+            chrom_s = np.array(list(fasta[chrom][0:chrom_size].upper()))[:,np.newaxis] == d
+            # Grab chromosome sequence arrays for each big wig
+            chrom_bws = np.zeros((chrom_size, num_bigwigs))
+            print '\tConverting bigwig chromosome sequences to arrays'
+            for f, bw in enumerate(bigwigs):
+                chrom_bw = np.array(bw.values(chrom, 0, chrom_size))
+                # If a value is undefined, impute with
+                # chromosome average (minority undefined) or 0 (majority undefined)
+                chrom_bw_nan = np.isnan(chrom_bw)
+                if chrom_bw_nan.sum() > len(chrom_bw_nan)/2.0:
+                    impute_value = 0
+                else:
+                    impute_value = np.mean(chrom_bw[~chrom_bw_nan])
+                chrom_bw[chrom_bw_nan] = impute_value
+                chrom_bws[:, f] = chrom_bw
+            print '\tAdding chromosome data sequences to feature tensor'
+        x_seq[n, :, 0:4] = chrom_s[interval.start:interval.stop, :]
+        x_bws[n, :, :] = chrom_bws[interval.start:interval.stop]
 
     for bigwig in bigwigs:
         bigwig.close()
-    return positive_bed, x, y
+    return positive_bed, x_seq, x_bws, y
 
 
 def make_argument_parser():
@@ -178,7 +185,7 @@ def main():
     excludes = args.exclude
     recurrent = args.recurrent
 
-    positive_bed, x, y = get_data(genome, fasta, beds, excludes, bigwigs, recurrent)
+    positive_bed, x_seq, x_bws, y = get_data(genome, fasta, beds, excludes, bigwigs, recurrent)
 
     if args.outputdir is None:
         clobber = True
@@ -186,7 +193,7 @@ def main():
     else:
         clobber = False
         output_dir = args.outputdir
-    save_data(positive_bed, x, y, output_dir, clobber)
+    save_data(positive_bed, x_seq, x_bws, y, output_dir, clobber)
 
 
 if __name__ == '__main__':
