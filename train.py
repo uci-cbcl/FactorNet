@@ -5,11 +5,10 @@ import h5py
 
 from keras.preprocessing import sequence
 from keras.optimizers import RMSprop
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten, add_shared_layer, Layer, Merge
+from keras.models import Graph
+from keras.layers.core import Dense, Dropout, Activation, Flatten, Layer, Merge
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.utils.layer_utils import model_summary
 import pickle
 
 # Standard library imports
@@ -19,18 +18,23 @@ import errno
 import argparse
 
 
-class Identity(Layer):
-    def __init__(self, **kwargs):
-        super(Identity, self).__init__(**kwargs)
+class Reverse(Layer):
 
-    def get_output(self, train):
-        x = self.get_input(train)
-        return x
+    def call(self, x, mask):
+        return x[:, ::-1, :]
+
+
+class ReverseComplement(Layer):
+
+    def call(self, x, mask):
+        return x[:, ::-1, ::-1]
 
 
 def make_model(num_bws):
-    print 'Stacking layers'
+    print 'Building model'
 
+    model = Model(input=[input_seq, input_bws], output=output)
+    """
     forward_seq = Sequential()
     forward_seq.add(Identity(input_shape=(1000, 4,)))
     forward_bws = Sequential()
@@ -66,11 +70,12 @@ def make_model(num_bws):
     add_shared_layer(Dense(input_dim=925, output_dim=1, activation="sigmoid"), inputs)
 
     model.add(Merge(inputs, mode='ave'))
+    """
 
     print 'Compiling model'
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', class_mode="binary")
 
-    model_summary(forward)
+    model.summary()
 
     return model
 
@@ -97,7 +102,7 @@ def train(train_data, valid_data, test_data, output_dir):
     earlystopper = EarlyStopping(monitor='val_loss', patience=30, verbose=1)
 
     history = model.fit([train_seq, train_bws, train_seq_rc, train_bws_rc], train_y,
-                        batch_size=100, nb_epoch=30, shuffle=True, show_accuracy=True,
+                        batch_size=100, nb_epoch=30, shuffle=True,
                         validation_data=([valid_seq, valid_bws, valid_seq_rc, valid_bws_rc],
                                          valid_y),
                         callbacks=[checkpointer, earlystopper])
@@ -110,8 +115,7 @@ def train(train_data, valid_data, test_data, output_dir):
     pickle.dump(history.history, history_file)
     history_file.close()
 
-    test_results = model.evaluate([test_seq, test_bws, test_seq_rc, test_bws_rc], test_y,
-                                  show_accuracy=True)
+    test_results = model.evaluate([test_seq, test_bws, test_seq_rc, test_bws_rc], test_y)
 
     print 'Test loss:', test_results[0]
     print 'Test accuracy:', test_results[1]
