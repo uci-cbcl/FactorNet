@@ -1,12 +1,17 @@
 #!/usr/bin/env python
+"""
+Script for training model.
+
+Use `train.py -h` to see an auto-generated description of advanced options.
+"""
 import numpy as np
 from pybedtools import BedTool
 import h5py
 
 from keras.preprocessing import sequence
 from keras.optimizers import RMSprop
-from keras.models import Graph
-from keras.layers.core import Dense, Dropout, Activation, Flatten, Layer, Merge
+from keras.models import Model
+from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 import pickle
@@ -30,47 +35,40 @@ class ReverseComplement(Layer):
         return x[:, ::-1, ::-1]
 
 
-def make_model(num_bws):
+def make_model(num_bws, num_targets):
     print 'Building model'
 
+    conv_layer = Convolution1D(input_dim=4 + num_bws, input_length=1000, nb_filter=320,
+                               filter_length=26, border_mode='valid', activation='relu',
+                               subsample_length=1)
+    max_pool_layer = MaxPooling1D(pool_length=13, stride=13)
+    dropout_layer = Dropout(0.5)
+    flatten_layer = Flatten()
+    dense_layer = Dense(975, activation='relu')
+    sigmoid_layer = Dense(num_targets, activation='sigmoid')
+
+    input_seq = Input(shape=(1000, 4,), dtype='bool')
+    input_bws = Input(shape=(1000, num_bws,), dtype='float32')
+    forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-2)
+    forward_conv = conv_layer(forward_input)
+    forward_max_pool = max_pool_layer(forward_conv)
+    forward_dropout = dropout_layer(forward_max_pool)
+    forward_flatten = flatten_layer(forward_dropout)
+    forward_dense = dense_layer(forward_flatten)
+    forward_sigmoid = sigmoid_layer(forward_dense)
+
+    input_seq_rc = ReverseComplement()(input_seq)
+    input_bws_rc = Reverse()(input_bws)
+    reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-2)
+    reverse_conv = conv_layer(reverse_input)
+    reverse_max_pool = max_pool_layer(reverse_conv)
+    reverse_dropout = dropout_layer(reverse_max_pool)
+    reverse_flatten = flatten_layer(reverse_dropout)
+    reverse_dense = dense_layer(reverse_flatten)
+    reverse_sigmoid = sigmoid_layer(reverse_dense)
+
+    output = merge([forward_sigmoid, reverse_sigmoid], mode='ave')
     model = Model(input=[input_seq, input_bws], output=output)
-    """
-    forward_seq = Sequential()
-    forward_seq.add(Identity(input_shape=(1000, 4,)))
-    forward_bws = Sequential()
-    forward_seq.add(Identity(input_shape=(1000, num_bws,)))
-    forward = Sequential()
-    forward_inputs = [forward_seq, forward_bws]
-    forward.add(Merge(forward_inputs, mode='concat', concat_axis=1))
-
-    reverse_seq = Sequential()
-    reverse_seq.add(Identity(input_shape=(1000, 4,)))
-    reverse_bws = Sequential()
-    reverse_seq.add(Identity(input_shape=(1000, num_bws,)))
-    reverse = Sequential()
-    reverse_inputs = [reverse_seq, reverse_bws]
-    reverse.add(Merge(reverse_inputs, mode='concat', concat_axis=1))
-
-    model = Sequential()
-
-    inputs = [forward, reverse]
-
-    add_shared_layer(Convolution1D(input_dim=4 + num_bws, input_length=1000, nb_filter=320,
-                                   filter_length=26, border_mode="valid", activation="relu",
-                                   subsample_length=1), inputs)
-
-    add_shared_layer(MaxPooling1D(pool_length=13, stride=13), inputs)
-
-    add_shared_layer(Dropout(0.5), inputs)
-
-    add_shared_layer(Flatten(), inputs)
-
-    add_shared_layer(Dense(input_dim=320 * 75, output_dim=925, activation="relu"), inputs)
-
-    add_shared_layer(Dense(input_dim=925, output_dim=1, activation="sigmoid"), inputs)
-
-    model.add(Merge(inputs, mode='ave'))
-    """
 
     print 'Compiling model'
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', class_mode="binary")
@@ -82,28 +80,20 @@ def make_model(num_bws):
 
 def train(train_data, valid_data, test_data, output_dir):
     train_seq, train_bws, train_y = train_data
-    train_seq_rc = train_seq[:, ::-1, ::-1]
-    train_bws_rc = train_bws[:, ::-1, :]
-
     valid_seq, valid_bws, valid_y = valid_data
-    valid_seq_rc = valid_seq[:, ::-1, ::-1]
-    valid_bws_rc = valid_bws[:, ::-1, :]
-
     test_seq, test_bws, test_y = test_data
-    test_seq_rc = test_seq[:, ::-1, ::-1]
-    test_bws_rc = test_bws[:, ::-1, :]
 
     model = make_model()
 
-    print 'Running at most 30 epochs'
+    print 'Running at most 2 epochs'
 
     checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
                                    verbose=1, save_best_only=True)
-    earlystopper = EarlyStopping(monitor='val_loss', patience=30, verbose=1)
+    earlystopper = EarlyStopping(monitor='val_loss', patience=2, verbose=1)
 
-    history = model.fit([train_seq, train_bws, train_seq_rc, train_bws_rc], train_y,
-                        batch_size=100, nb_epoch=30, shuffle=True,
-                        validation_data=([valid_seq, valid_bws, valid_seq_rc, valid_bws_rc],
+    history = model.fit([train_seq, train_bws], train_y,
+                        batch_size=100, nb_epoch=2, shuffle=True,
+                        validation_data=([valid_seq, valid_bws],
                                          valid_y),
                         callbacks=[checkpointer, earlystopper])
 
@@ -115,7 +105,7 @@ def train(train_data, valid_data, test_data, output_dir):
     pickle.dump(history.history, history_file)
     history_file.close()
 
-    test_results = model.evaluate([test_seq, test_bws, test_seq_rc, test_bws_rc], test_y)
+    test_results = model.evaluate([test_seq, test_bws], test_y)
 
     print 'Test loss:', test_results[0]
     print 'Test accuracy:', test_results[1]
