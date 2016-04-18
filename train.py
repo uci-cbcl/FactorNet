@@ -36,7 +36,7 @@ class ReverseComplement(Layer):
 
 
 def make_model(num_bws, num_targets):
-    print 'Building model'
+    print '\nBuilding model'
 
     conv_layer = Convolution1D(input_dim=4 + num_bws, input_length=1000, nb_filter=320,
                                filter_length=26, border_mode='valid', activation='relu',
@@ -83,7 +83,9 @@ def train(train_data, valid_data, test_data, output_dir):
     valid_seq, valid_bws, valid_y = valid_data
     test_seq, test_bws, test_y = test_data
 
-    model = make_model()
+    num_bws = train_bws.shape[-1]
+    num_targets = train_y.shape[-1]
+    model = make_model(num_bws, num_targets)
 
     print 'Running at most 2 epochs'
 
@@ -115,32 +117,48 @@ def load_data(input_dir, valid_chroms, test_chroms):
     print 'Loading data'
 
     f = h5py.File(input_dir + '/data.hdf5')
+    x_seq = f['x_seq'].value
+    x_bws = f['x_bws'].value
+    y = f['y'].value
+    f.close()
     windows = BedTool(input_dir + '/windows.bed.gz')
     windows_chroms = [window.chrom for window in windows]
 
+    print 'Splitting data'
+
     # Valid
-    boolean_list = [chrom in valid_chroms for chrom in windows_chroms]
-    valid_seq = f['x_seq'][boolean_list]
-    valid_bws = f['x_bws'][boolean_list]
-    valid_y = f['y'][boolean_list]
+    boolean_list = np.array([chrom in valid_chroms for chrom in windows_chroms])
+    valid_seq = x_seq[boolean_list]
+    valid_bws = x_bws[boolean_list]
+    valid_y = y[boolean_list]
     valid_data = (valid_seq, valid_bws, valid_y)
 
     # Test
-    boolean_list = [chrom in test_chroms for chrom in windows_chroms]
-    test_seq = f['x_seq'][boolean_list]
-    test_bws = f['x_bws'][boolean_list]
-    test_y = f['y'][boolean_list]
+    boolean_list = np.array([chrom in test_chroms for chrom in windows_chroms])
+    test_seq = x_seq[boolean_list]
+    test_bws = x_bws[boolean_list]
+    test_y = y[boolean_list]
     test_data = (test_seq, test_bws, test_y)
 
     # Train
     valid_test_chroms = valid_chroms + test_chroms
-    boolean_list = [chrom not in valid_test_chroms for chrom in windows_chroms]
-    train_seq = f['x_seq'][boolean_list]
-    train_bws = f['x_bws'][boolean_list]
-    train_y = f['y'][boolean_list]
+    boolean_list = np.array([chrom not in valid_test_chroms for chrom in windows_chroms])
+    train_seq = x_seq[boolean_list]
+    train_bws = x_bws[boolean_list]
+    train_y = y[boolean_list]
     train_data = (train_seq, train_bws, train_y)
-    f.close()
 
+    print '\nTrain seq shape:', train_seq.shape
+    print 'Train bws shape:', train_bws.shape
+    print 'Train y shape:', train_y.shape
+
+    print '\nValid seq shape:', valid_seq.shape
+    print 'Valid bws shape:', valid_bws.shape
+    print 'Valid y shape:', valid_y.shape
+
+    print '\nTest seq shape:', test_seq.shape
+    print 'Test bws shape:', test_bws.shape
+    print 'Test y shape:', test_y.shape
     return train_data, valid_data, test_data
 
 
