@@ -49,7 +49,7 @@ def make_model(num_bws, num_targets):
 
     input_seq = Input(shape=(1000, 4,), dtype='int8')
     input_bws = Input(shape=(1000, num_bws,), dtype='float32')
-    forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-2)
+    forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-1)
     forward_conv = conv_layer(forward_input)
     forward_max_pool = max_pool_layer(forward_conv)
     forward_dropout = dropout_layer(forward_max_pool)
@@ -59,7 +59,7 @@ def make_model(num_bws, num_targets):
 
     input_seq_rc = ReverseComplement()(input_seq)
     input_bws_rc = Reverse()(input_bws)
-    reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-2)
+    reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-1)
     reverse_conv = conv_layer(reverse_input)
     reverse_max_pool = max_pool_layer(reverse_conv)
     reverse_dropout = dropout_layer(reverse_max_pool)
@@ -71,7 +71,7 @@ def make_model(num_bws, num_targets):
     model = Model(input=[input_seq, input_bws], output=output)
 
     print 'Compiling model'
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', class_mode="binary")
+    model.compile('rmsprop', 'binary_crossentropy', metrics=['accuracy'])
 
     model.summary()
 
