@@ -103,7 +103,7 @@ def train(train_data, valid_data, test_data, output_dir):
     model.save_weights(output_dir + '/final_model.hdf5')
 
     print 'Saving history'
-    history_file = open("train3_history.pkl", 'wb')
+    history_file = open(output_dir + 'history.pkl', 'wb')
     pickle.dump(history.history, history_file)
     history_file.close()
 
