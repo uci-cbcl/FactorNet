@@ -47,7 +47,7 @@ def make_model(num_bws, num_targets):
     dense_layer = Dense(975, activation='relu')
     sigmoid_layer = Dense(num_targets, activation='sigmoid')
 
-    input_seq = Input(shape=(1000, 4,), dtype='bool')
+    input_seq = Input(shape=(1000, 4,), dtype='int8')
     input_bws = Input(shape=(1000, num_bws,), dtype='float32')
     forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-2)
     forward_conv = conv_layer(forward_input)
