@@ -35,21 +35,31 @@ class ReverseComplement(Layer):
         return x[:, ::-1, ::-1]
 
 
-def make_model(num_bws, num_targets):
+def make_model(num_bws, num_targets, seqonly):
     print '\nBuilding model'
 
-    conv_layer = Convolution1D(input_dim=4 + num_bws, input_length=1000, nb_filter=320,
+    input_seq = Input(shape=(1000, 4,))
+    input_seq_rc = ReverseComplement()(input_seq)
+    input_bws = Input(shape=(1000, num_bws,), dtype='float32')
+    input_bws_rc = Reverse()(input_bws)
+
+    if seqonly:
+        num_bws = 0
+        forward_input = input_seq
+        reverse_input = input_seq_rc
+    else:
+        forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-1)
+        reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-1)
+
+    conv_layer = Convolution1D(input_dim=4 + num_bws, nb_filter=100,
                                filter_length=26, border_mode='valid', activation='relu',
                                subsample_length=1)
     max_pool_layer = MaxPooling1D(pool_length=13, stride=13)
     dropout_layer = Dropout(0.5)
     flatten_layer = Flatten()
-    dense_layer = Dense(975, activation='relu')
+    dense_layer = Dense(200, activation='relu')
     sigmoid_layer = Dense(num_targets, activation='sigmoid')
 
-    input_seq = Input(shape=(1000, 4,), dtype='int8')
-    input_bws = Input(shape=(1000, num_bws,), dtype='float32')
-    forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-1)
     forward_conv = conv_layer(forward_input)
     forward_max_pool = max_pool_layer(forward_conv)
     forward_dropout = dropout_layer(forward_max_pool)
@@ -57,9 +67,6 @@ def make_model(num_bws, num_targets):
     forward_dense = dense_layer(forward_flatten)
     forward_sigmoid = sigmoid_layer(forward_dense)
 
-    input_seq_rc = ReverseComplement()(input_seq)
-    input_bws_rc = Reverse()(input_bws)
-    reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-1)
     reverse_conv = conv_layer(reverse_input)
     reverse_max_pool = max_pool_layer(reverse_conv)
     reverse_dropout = dropout_layer(reverse_max_pool)
@@ -78,29 +85,32 @@ def make_model(num_bws, num_targets):
     return model
 
 
-def train(train_data, valid_data, test_data, output_dir):
+def train(train_data, valid_data, test_data, seqonly, output_dir):
     train_seq, train_bws, train_y = train_data
     valid_seq, valid_bws, valid_y = valid_data
     test_seq, test_bws, test_y = test_data
 
     num_bws = train_bws.shape[-1]
     num_targets = train_y.shape[-1]
-    model = make_model(num_bws, num_targets)
 
-    print 'Running at most 2 epochs'
+    if seqonly:
+        print 'Training only with DNA sequences.'
+    model = make_model(num_bws, num_targets, seqonly)
+
+    print 'Running at most 20 epochs'
 
     checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
                                    verbose=1, save_best_only=True)
-    earlystopper = EarlyStopping(monitor='val_loss', patience=2, verbose=1)
+    earlystopper = EarlyStopping(monitor='val_loss', patience=20, verbose=1)
 
     history = model.fit([train_seq, train_bws], train_y,
-                        batch_size=100, nb_epoch=2, shuffle=True,
+                        batch_size=100, nb_epoch=20, shuffle=True,
                         validation_data=([valid_seq, valid_bws],
                                          valid_y),
                         callbacks=[checkpointer, earlystopper])
 
     print 'Saving final model'
-    model.save_weights(output_dir + '/final_model.hdf5')
+    model.save_weights(output_dir + '/final_model.hdf5', overwrite=True)
 
     print 'Saving history'
     history_file = open(output_dir + 'history.pkl', 'wb')
@@ -151,14 +161,18 @@ def load_data(input_dir, valid_chroms, test_chroms):
     print '\nTrain seq shape:', train_seq.shape
     print 'Train bws shape:', train_bws.shape
     print 'Train y shape:', train_y.shape
+    print 'Train y sparsity:', 1-train_y.sum()*1.0/np.prod(train_y.shape)
 
     print '\nValid seq shape:', valid_seq.shape
     print 'Valid bws shape:', valid_bws.shape
     print 'Valid y shape:', valid_y.shape
+    print 'Valid y sparsity:', 1-valid_y.sum()*1.0/np.prod(valid_y.shape)
 
     print '\nTest seq shape:', test_seq.shape
     print 'Test bws shape:', test_bws.shape
     print 'Test y shape:', test_y.shape
+    print 'Test y sparsity:', 1-test_y.sum()*1.0/np.prod(test_y.shape)
+
     return train_data, valid_data, test_data
 
 
@@ -181,6 +195,8 @@ def make_argument_parser():
                         help='Chromosome(s) to set aside for testing.')
     parser.add_argument('--recurrent', '-r', action='store_true',
                         help='Save data as long sequences for fully recurrent models.')
+    parser.add_argument('--seqonly', '-s', action='store_true',
+                        help='Train only with sequences.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-o', '--outputdir', type=str,
                        help='The output directory. Causes error if the directory already exists.')
@@ -200,6 +216,7 @@ def main():
     valid_chroms = args.validchroms
     test_chroms = args.testchroms
     recurrent = args.recurrent
+    seqonly = args.seqonly
 
     if args.outputdir is None:
         clobber = True
@@ -222,7 +239,7 @@ def main():
 
     train_data, valid_data, test_data = load_data(input_dir, valid_chroms, test_chroms)
 
-    train(train_data, valid_data, test_data, output_dir)
+    train(train_data, valid_data, test_data, seqonly, output_dir)
 
 
 if __name__ == '__main__':
