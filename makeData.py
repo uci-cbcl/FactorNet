@@ -85,7 +85,7 @@ def get_data(genome, fasta, beds, excludes, bigwigs, recurrent):
     merged_targets_bed = beds[0]
     if len(beds) > 1:
         merged_targets_bed = merged_targets_bed.cat(*beds[1:])
-    merged_targets_bed = merged_targets_bed.slop(g=genome, b=1000)
+    #merged_targets_bed = merged_targets_bed.slop(g=genome, b=1000)
     positive_bed = genome_windows.intersect(merged_targets_bed, u=True).sort()
     num_samples = len(positive_bed)
     x_seq = np.zeros((num_samples, seq_length, 4), dtype=bool)
