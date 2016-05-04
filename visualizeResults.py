@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 """
-Script for training model.
+Script for visualizing results from a trained model.
 
-Use `train.py -h` to see an auto-generated description of advanced options.
+Use `visualizeResults.py -h` to see an auto-generated description of advanced options.
 """
 import numpy as np
-np.random.seed(100)
 from pybedtools import BedTool
 import h5py
+import theano
+import pylab
+import matplotlib
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
 
 from keras.preprocessing import sequence
 from keras.optimizers import RMSprop
@@ -52,7 +55,7 @@ def make_model(num_bws, num_targets, seqonly):
         forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-1)
         reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-1)
 
-    conv_layer = Convolution1D(input_dim=4 + num_bws, nb_filter=100,
+    conv_layer = Convolution1D(input_dim=4 + num_bws, nb_filter=20,
                                filter_length=26, border_mode='valid', activation='relu',
                                subsample_length=1)
     max_pool_layer = MaxPooling1D(pool_length=13, stride=13)
@@ -86,45 +89,108 @@ def make_model(num_bws, num_targets, seqonly):
     return model
 
 
-def train(train_data, valid_data, test_data, seqonly, output_dir):
-    train_seq, train_bws, train_y = train_data
-    valid_seq, valid_bws, valid_y = valid_data
-    test_seq, test_bws, test_y = test_data
-
-    num_bws = train_bws.shape[-1]
-    num_targets = train_y.shape[-1]
+def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
+    num_bws = test_bws.shape[-1]
+    num_targets = 1#test_y.shape[-1]
+    test_y = test_y[:,18]
+    num_seqs = len(test_seq)
+    if seqonly:
+        print '\nTesting only with DNA sequences.'
+    model = make_model(num_bws, num_targets, seqonly)
+    model.load_weights(model_dir + '/best_model.hdf5')
 
     if seqonly:
-        print '\nTraining only with DNA sequences.'
-    model = make_model(num_bws, num_targets, seqonly)
+        convlayer = 2
+        input = [model.input[0]]
+    else:
+        convlayer = 6
+        input = model.input
+    x, y = model.layers[convlayer].get_output_at(0), model.layers[convlayer].get_output_at(1)
+    f = theano.function(input,
+                        [x.argmax(axis=1), x.max(axis=1), y.argmax(axis=1), y.max(axis=1)])
 
-    print 'Running at most 20 epochs'
+    print 'Getting activations'
+    max_acts = []
+    max_inds = []
+    max_acts_rc = []
+    max_inds_rc = []
+    for n in xrange(int(np.ceil(num_seqs*1.0/1000))):
+        if seqonly:
+            z = f(test_seq[n * 1000:n * 1000 + 1000])
+        else:
+            z = f(test_seq[n * 1000:n * 1000 + 1000], test_bws[n * 1000:n * 1000 + 1000])
+        max_inds += [z[0]]
+        max_acts += [z[1]]
+        max_inds_rc += [z[2]]
+        max_acts_rc += [z[3]]
 
-    checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
-                                   verbose=1, save_best_only=True)
-    earlystopper = EarlyStopping(monitor='val_loss', patience=20, verbose=1)
+    max_acts = np.vstack(max_acts)
+    max_inds = np.vstack(max_inds)
+    max_acts_rc = np.vstack(max_acts_rc)
+    max_inds_rc = np.vstack(max_inds_rc)
 
-    history = model.fit([train_seq, train_bws], train_y,
-                        batch_size=100, nb_epoch=20, shuffle=True,
-                        validation_data=([valid_seq, valid_bws],
-                                         valid_y),
-                        callbacks=[checkpointer, earlystopper])
+    test_seq_rc = test_seq[:, ::-1, ::-1]
 
-    print 'Saving final model'
-    model.save_weights(output_dir + '/final_model.hdf5', overwrite=True)
+    print 'Making motifs'
 
-    print 'Saving history'
-    history_file = open(output_dir + '/history.pkl', 'wb')
-    pickle.dump(history.history, history_file)
-    history_file.close()
+    motifs = np.zeros((20, 26, 4))
+    nsites = np.zeros(20)
 
-    test_results = model.evaluate([test_seq, test_bws], test_y)
+    for m in xrange(20):
+        for n in xrange(num_seqs):
+            # Forward strand
+            if max_acts[n, m] > 0:
+                nsites[m] += 1
+                motifs[m] += test_seq[n, max_inds[n, m]:max_inds[n, m]+26, :]
+            # Reverse strand
+            if max_acts_rc[n, m] > 0:
+                nsites[m] += 1
+                motifs[m] += test_seq_rc[n, max_inds_rc[n, m]:max_inds_rc[n, m]+26, :]
 
-    print 'Test loss:', test_results[0]
-    print 'Test accuracy:', test_results[1]
+    f = open(output_dir + '/motifs.txt', 'w')
+    f.write('MEME version 4.9.0\n\n'
+            'ALPHABET= ACGT\n\n'
+            'strands: + -\n\n'
+            'Background letter frequencies (from uniform background):\n'
+            'A 0.25000 C 0.25000 G 0.25000 T 0.25000\n\n')
+    for m in xrange(20):
+        f.write('MOTIF M%i O%i\n' % (m, m))
+        f.write("letter-probability matrix: alength= 4 w= 26 nsites= %i E= 1337.0e-6\n" % nsites[m])
+        for j in xrange(26):
+            f.write("%f %f %f %f\n" % tuple(1.0 * motifs[m, j, :] / np.sum(motifs[m, j, :])))
+        f.write('\n')
+
+    f.close()
+
+    test_predicts = model.predict([test_seq, test_bws], batch_size=100)
+    roc_auc = np.zeros(num_targets)
+    pr_auc = np.zeros(num_targets)
+
+    pylab.rcParams['font.size'] = 20
+    pylab.xlabel('FPR')
+    pylab.ylabel('TPR')
+    pylab.title('ROC curves')
+    pylab.plot([0, 1], [0, 1], 'k-', lw=3)
+    for t in xrange(num_targets):
+        fpr, tpr, _ = roc_curve(test_y, test_predicts)
+        roc_auc[t] = auc(fpr, tpr)
+        pylab.plot(fpr, tpr, 'k--')
+    pylab.show()
+
+    pylab.xlabel('Recall')
+    pylab.ylabel('Precision')
+    pylab.title('PR curves')
+    for t in xrange(num_targets):
+        precision, recall, _ = precision_recall_curve(test_y,  test_predicts)
+        pr_auc[t] = average_precision_score(test_y, test_predicts)
+        pylab.plot(recall, precision, 'k--')
+    pylab.show()
+
+    np.savetxt(output_dir + '/roc.txt', roc_auc)
+    np.savetxt(output_dir + '/pr.txt', pr_auc)
 
 
-def load_data(input_dir, valid_chroms, test_chroms):
+def load_data(input_dir, test_chroms):
     print 'Loading data'
 
     f = h5py.File(input_dir + '/data.hdf5')
@@ -137,44 +203,18 @@ def load_data(input_dir, valid_chroms, test_chroms):
 
     print 'Splitting data'
 
-    # Valid
-    boolean_list = np.array([chrom in valid_chroms for chrom in windows_chroms])
-    valid_seq = x_seq[boolean_list]
-    valid_bws = x_bws[boolean_list]
-    valid_y = y[boolean_list]
-    valid_data = (valid_seq, valid_bws, valid_y)
-
     # Test
     boolean_list = np.array([chrom in test_chroms for chrom in windows_chroms])
     test_seq = x_seq[boolean_list]
     test_bws = x_bws[boolean_list]
     test_y = y[boolean_list]
-    test_data = (test_seq, test_bws, test_y)
-
-    # Train
-    valid_test_chroms = valid_chroms + test_chroms
-    boolean_list = np.array([chrom not in valid_test_chroms for chrom in windows_chroms])
-    train_seq = x_seq[boolean_list]
-    train_bws = x_bws[boolean_list]
-    train_y = y[boolean_list]
-    train_data = (train_seq, train_bws, train_y)
-
-    print '\nTrain seq shape:', train_seq.shape
-    print 'Train bws shape:', train_bws.shape
-    print 'Train y shape:', train_y.shape
-    print 'Train y sparsity:', 1-train_y[:,18].sum()*1.0/np.prod(train_y[:,18].shape)
-
-    print '\nValid seq shape:', valid_seq.shape
-    print 'Valid bws shape:', valid_bws.shape
-    print 'Valid y shape:', valid_y.shape
-    print 'Valid y sparsity:', 1-valid_y[:,18].sum()*1.0/np.prod(valid_y[:,18].shape)
 
     print '\nTest seq shape:', test_seq.shape
     print 'Test bws shape:', test_bws.shape
     print 'Test y shape:', test_y.shape
-    print 'Test y sparsity:', 1-test_y[:,18].sum()*1.0/np.prod(test_y[:,18].shape)
+    print 'Test y sparsity:', 1-test_y.sum()*1.0/np.prod(test_y.shape)
 
-    return train_data, valid_data, test_data
+    return test_seq, test_bws, test_y
 
 
 def make_argument_parser():
@@ -183,14 +223,13 @@ def make_argument_parser():
     sys.argv
     """
     parser = argparse.ArgumentParser(
-        description="Train model.",
+        description="Visualize results of a trained model.",
         epilog='\n'.join(__doc__.strip().split('\n')[1:]).strip(),
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--inputdir', '-i', type=str, required=True,
                         help='Folder containing data generated by makeData.py')
-    parser.add_argument('--validchroms', '-v', type=str, required=False, nargs='+',
-                        default=['chr11'],
-                        help='Chromosome(s) to set aside for validation.')
+    parser.add_argument('--modeldir', '-m', type=str, required=True,
+                        help='Folder containing trained model generated by train.py.')
     parser.add_argument('--testchroms', '-t', type=str, required=False, nargs='+',
                         default=['chr10'],
                         help='Chromosome(s) to set aside for testing.')
@@ -214,7 +253,7 @@ def main():
     args = parser.parse_args()
 
     input_dir = args.inputdir
-    valid_chroms = args.validchroms
+    model_dir = args.modeldir
     test_chroms = args.testchroms
     recurrent = args.recurrent
     seqonly = args.seqonly
@@ -238,9 +277,9 @@ def main():
                 print >> sys.stderr, ('output directory (%s) already exists '
                                       'so it will be clobbered') % output_dir
 
-    train_data, valid_data, test_data = load_data(input_dir, valid_chroms, test_chroms)
+    test_seq, test_bws, test_y = load_data(input_dir, test_chroms)
 
-    train(train_data, valid_data, test_data, seqonly, output_dir)
+    output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir)
 
 
 if __name__ == '__main__':
