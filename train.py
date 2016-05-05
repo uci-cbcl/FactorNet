@@ -5,7 +5,7 @@ Script for training model.
 Use `train.py -h` to see an auto-generated description of advanced options.
 """
 import numpy as np
-np.random.seed(100)
+np.random.seed(1337)
 from pybedtools import BedTool
 import h5py
 
@@ -162,17 +162,17 @@ def load_data(input_dir, valid_chroms, test_chroms):
     print '\nTrain seq shape:', train_seq.shape
     print 'Train bws shape:', train_bws.shape
     print 'Train y shape:', train_y.shape
-    print 'Train y sparsity:', 1-train_y[:,18].sum()*1.0/np.prod(train_y[:,18].shape)
+    print 'Train y sparsity:', 1-train_y.sum()*1.0/np.prod(train_y.shape)
 
     print '\nValid seq shape:', valid_seq.shape
     print 'Valid bws shape:', valid_bws.shape
     print 'Valid y shape:', valid_y.shape
-    print 'Valid y sparsity:', 1-valid_y[:,18].sum()*1.0/np.prod(valid_y[:,18].shape)
+    print 'Valid y sparsity:', 1-valid_y.sum()*1.0/np.prod(valid_y.shape)
 
     print '\nTest seq shape:', test_seq.shape
     print 'Test bws shape:', test_bws.shape
     print 'Test y shape:', test_y.shape
-    print 'Test y sparsity:', 1-test_y[:,18].sum()*1.0/np.prod(test_y[:,18].shape)
+    print 'Test y sparsity:', 1-test_y.sum()*1.0/np.prod(test_y.shape)
 
     return train_data, valid_data, test_data
 
