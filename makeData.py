@@ -2,7 +2,7 @@
 """
 Script for preprocessing data with a user-supplied DNase BED file.
 
-Use `makeData2.py -h` to see an auto-generated description of advanced options.
+Use `makeData.py -h` to see an auto-generated description of advanced options.
 """
 
 import numpy as np
@@ -50,7 +50,6 @@ def save_data(windows, x_seq, x_bws, y, beds, bigwigs, output_dir, clobber):
 
 
 def get_data(dnase, genome, fasta, beds, excludes, bigwigs, recurrent):
-    assert beds  # Make sure at least one bed file is present
     chroms = np.loadtxt(genome, usecols=[0], dtype=str)
     chroms_lens = np.loadtxt(genome, usecols=[1], dtype=np.int64)
     chroms_lens_dict = dict(zip(chroms, chroms_lens))
@@ -136,7 +135,7 @@ def make_argument_parser():
                         help='Genome fasta file')
     parser.add_argument('--genome', '-g', type=str, required=True,
                         help='Genome size file.')
-    parser.add_argument('--bed', '-b', type=str, required=True, nargs='+',
+    parser.add_argument('--bed', '-b', type=str, required=False, nargs='*',
                         help='One or more BED files.')
     parser.add_argument('--exclude', '-x', type=str, required=False, nargs='+',
                         help='One or more BED files of regions to exclude.')
@@ -162,6 +161,8 @@ def main():
     genome = args.genome
     fasta = args.fasta
     beds = args.bed
+    if beds is None:
+        beds = []
     excludes = args.exclude
     bigwigs = args.bigwig
     recurrent = args.recurrent

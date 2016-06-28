@@ -17,6 +17,7 @@ from keras.optimizers import RMSprop
 from keras.models import Model
 from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
+from keras.layers.recurrent import LSTM
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 import pickle
 
@@ -55,11 +56,13 @@ def make_model(num_bws, num_targets, seqonly):
         forward_input = merge([input_seq, input_bws], mode='concat', concat_axis=-1)
         reverse_input = merge([input_seq_rc, input_bws_rc], mode='concat', concat_axis=-1)
 
-    conv_layer = Convolution1D(input_dim=4 + num_bws, nb_filter=20,
+    conv_layer = Convolution1D(input_dim=4 + num_bws, nb_filter=120,
                                filter_length=26, border_mode='valid', activation='relu',
                                subsample_length=1)
     max_pool_layer = MaxPooling1D(pool_length=13, stride=13)
-    dropout_layer = Dropout(0.5)
+    dropout_layer = Dropout(0.2)
+    lstm_layer = LSTM(120, return_sequences=True)
+    dropout2_layer = Dropout(0.5)
     flatten_layer = Flatten()
     dense_layer = Dense(975, activation='relu')
     sigmoid_layer = Dense(num_targets, activation='sigmoid')
@@ -67,14 +70,18 @@ def make_model(num_bws, num_targets, seqonly):
     forward_conv = conv_layer(forward_input)
     forward_max_pool = max_pool_layer(forward_conv)
     forward_dropout = dropout_layer(forward_max_pool)
-    forward_flatten = flatten_layer(forward_dropout)
+    forward_lstm = lstm_layer(forward_dropout)
+    forward_dropout2 = dropout2_layer(forward_lstm)
+    forward_flatten = flatten_layer(forward_dropout2)
     forward_dense = dense_layer(forward_flatten)
     forward_sigmoid = sigmoid_layer(forward_dense)
 
     reverse_conv = conv_layer(reverse_input)
     reverse_max_pool = max_pool_layer(reverse_conv)
     reverse_dropout = dropout_layer(reverse_max_pool)
-    reverse_flatten = flatten_layer(reverse_dropout)
+    reverse_lstm = lstm_layer(reverse_dropout)
+    reverse_dropout2 = dropout2_layer(reverse_lstm)
+    reverse_flatten = flatten_layer(reverse_dropout2)
     reverse_dense = dense_layer(reverse_flatten)
     reverse_sigmoid = sigmoid_layer(reverse_dense)
 
@@ -91,8 +98,7 @@ def make_model(num_bws, num_targets, seqonly):
 
 def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
     num_bws = test_bws.shape[-1]
-    num_targets = 1#test_y.shape[-1]
-    test_y = test_y[:,18]
+    num_targets = test_y.shape[-1]
     num_seqs = len(test_seq)
     if seqonly:
         print '\nTesting only with DNA sequences.'
@@ -114,11 +120,22 @@ def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
     max_inds = []
     max_acts_rc = []
     max_inds_rc = []
-    for n in xrange(int(np.ceil(num_seqs*1.0/1000))):
+
+    test_seq_rc = test_seq[:, ::-1, ::-1]
+
+    pos_inds = test_y.sum(axis=1, dtype=bool)
+    test_seq2 = test_seq[pos_inds]
+    test_bws2 = test_bws[pos_inds]
+    test_seq2_rc = test_seq_rc[pos_inds]
+
+    num_seqs2 = len(test_seq2)
+    print num_seqs2
+
+    for n in xrange(int(np.ceil(num_seqs2*1.0/1000))):
         if seqonly:
-            z = f(test_seq[n * 1000:n * 1000 + 1000])
+            z = f(test_seq2[n * 1000:n * 1000 + 1000])
         else:
-            z = f(test_seq[n * 1000:n * 1000 + 1000], test_bws[n * 1000:n * 1000 + 1000])
+            z = f(test_seq2[n * 1000:n * 1000 + 1000], test_bws2[n * 1000:n * 1000 + 1000])
         max_inds += [z[0]]
         max_acts += [z[1]]
         max_inds_rc += [z[2]]
@@ -129,23 +146,21 @@ def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
     max_acts_rc = np.vstack(max_acts_rc)
     max_inds_rc = np.vstack(max_inds_rc)
 
-    test_seq_rc = test_seq[:, ::-1, ::-1]
-
     print 'Making motifs'
 
-    motifs = np.zeros((20, 26, 4))
-    nsites = np.zeros(20)
+    motifs = np.zeros((120, 26, 4))
+    nsites = np.zeros(120)
 
-    for m in xrange(20):
-        for n in xrange(num_seqs):
+    for m in xrange(120):
+        for n in xrange(num_seqs2):
             # Forward strand
             if max_acts[n, m] > 0:
                 nsites[m] += 1
-                motifs[m] += test_seq[n, max_inds[n, m]:max_inds[n, m]+26, :]
+                motifs[m] += test_seq2[n, max_inds[n, m]:max_inds[n, m]+26, :]
             # Reverse strand
             if max_acts_rc[n, m] > 0:
                 nsites[m] += 1
-                motifs[m] += test_seq_rc[n, max_inds_rc[n, m]:max_inds_rc[n, m]+26, :]
+                motifs[m] += test_seq2_rc[n, max_inds_rc[n, m]:max_inds_rc[n, m]+26, :]
 
     f = open(output_dir + '/motifs.txt', 'w')
     f.write('MEME version 4.9.0\n\n'
@@ -153,7 +168,9 @@ def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
             'strands: + -\n\n'
             'Background letter frequencies (from uniform background):\n'
             'A 0.25000 C 0.25000 G 0.25000 T 0.25000\n\n')
-    for m in xrange(20):
+    for m in xrange(120):
+        if nsites[m] == 0:
+            continue
         f.write('MOTIF M%i O%i\n' % (m, m))
         f.write("letter-probability matrix: alength= 4 w= 26 nsites= %i E= 1337.0e-6\n" % nsites[m])
         for j in xrange(26):
@@ -172,7 +189,7 @@ def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
     pylab.title('ROC curves')
     pylab.plot([0, 1], [0, 1], 'k-', lw=3)
     for t in xrange(num_targets):
-        fpr, tpr, _ = roc_curve(test_y, test_predicts)
+        fpr, tpr, _ = roc_curve(test_y[:, t], test_predicts[:, t])
         roc_auc[t] = auc(fpr, tpr)
         pylab.plot(fpr, tpr, 'k--')
     pylab.show()
@@ -181,8 +198,8 @@ def output_results(test_seq, test_bws, test_y, seqonly, model_dir, output_dir):
     pylab.ylabel('Precision')
     pylab.title('PR curves')
     for t in xrange(num_targets):
-        precision, recall, _ = precision_recall_curve(test_y,  test_predicts)
-        pr_auc[t] = average_precision_score(test_y, test_predicts)
+        precision, recall, _ = precision_recall_curve(test_y[:, t],  test_predicts[:, t])
+        pr_auc[t] = average_precision_score(test_y[:, t], test_predicts[:, t])
         pylab.plot(recall, precision, 'k--')
     pylab.show()
 

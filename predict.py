@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 """
-Script for training model.
+Script for predicting TF binding with a trained model.
 
-Use `train.py -h` to see an auto-generated description of advanced options.
+Use `predict.py -h` to see an auto-generated description of advanced options.
 """
+
 import numpy as np
-np.random.seed(69)
 from pybedtools import BedTool
+from pybedtools.featurefuncs import extend_fields
+from pybedtools.contrib.bigwig import bedgraph_to_bigwig
+import pyfasta
 import h5py
+import theano
+import pylab
+import matplotlib
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
 
 from keras.preprocessing import sequence
 from keras.optimizers import RMSprop
@@ -57,9 +64,9 @@ def make_model(num_bws, num_targets, seqonly):
                                filter_length=26, border_mode='valid', activation='relu',
                                subsample_length=1)
     max_pool_layer = MaxPooling1D(pool_length=13, stride=13)
-    dropout_layer = Dropout(0.1)
+    dropout_layer = Dropout(0.2)
     lstm_layer = LSTM(120, return_sequences=True)
-    dropout2_layer = Dropout(0.2)
+    dropout2_layer = Dropout(0.5)
     flatten_layer = Flatten()
     dense_layer = Dense(975, activation='relu')
     sigmoid_layer = Dense(num_targets, activation='sigmoid')
@@ -93,45 +100,32 @@ def make_model(num_bws, num_targets, seqonly):
     return model
 
 
-def train(train_data, valid_data, test_data, seqonly, output_dir):
-    train_seq, train_bws, train_y = train_data
-    valid_seq, valid_bws, valid_y = valid_data
-    test_seq, test_bws, test_y = test_data
+def add_score(feature, i, scores):
+    feature[3] = str(scores[i[0]])
+    i[0] += 1
+    return feature
 
-    num_bws = train_bws.shape[-1]
-    num_targets = train_y.shape[-1]
 
+def output_results(x_seq, x_bws, y, windows, tfs, seqonly, model_dir, output_dir):
+    num_bws = x_bws.shape[-1]
+    num_targets = len(tfs)
+    num_seqs = len(x_seq)
     if seqonly:
-        print '\nTraining only with DNA sequences.'
+        print '\nTesting only with DNA sequences.'
     model = make_model(num_bws, num_targets, seqonly)
-
-    print 'Running at most 30 epochs'
-
-    checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
-                                   verbose=1, save_best_only=True)
-    earlystopper = EarlyStopping(monitor='val_loss', patience=30, verbose=1)
-
-    history = model.fit([train_seq, train_bws], train_y,
-                        batch_size=100, nb_epoch=30, shuffle=True,
-                        validation_data=([valid_seq, valid_bws],
-                                         valid_y),
-                        callbacks=[checkpointer, earlystopper])
-
-    print 'Saving final model'
-    model.save_weights(output_dir + '/final_model.hdf5', overwrite=True)
-
-    print 'Saving history'
-    history_file = open(output_dir + '/history.pkl', 'wb')
-    pickle.dump(history.history, history_file)
-    history_file.close()
-
-    test_results = model.evaluate([test_seq, test_bws], test_y)
-
-    print 'Test loss:', test_results[0]
-    print 'Test accuracy:', test_results[1]
+    model.load_weights(model_dir + '/best_model.hdf5')
+    predicts = model.predict([x_seq, x_bws], batch_size=1000, verbose=1)
+    windows2 = windows.each(extend_fields, 4).saveas()
+    for j in xrange(len(tfs)):
+        tf = tfs[j]
+        print tf
+        scores = predicts[:, j]
+        i = [0]
+        windows3 = windows2.each(add_score, i, scores).saveas()
+        bedgraph_to_bigwig(windows3, 'hg19', output_dir + '/' + tf + '.bw')
 
 
-def load_data(input_dir, valid_chroms, test_chroms):
+def load_data(input_dir):
     print 'Loading data'
 
     f = h5py.File(input_dir + '/data.hdf5')
@@ -140,48 +134,13 @@ def load_data(input_dir, valid_chroms, test_chroms):
     y = f['y'].value
     f.close()
     windows = BedTool(input_dir + '/windows.bed.gz')
-    windows_chroms = [window.chrom for window in windows]
 
-    print 'Splitting data'
+    print '\nseq shape:', x_seq.shape
+    print 'bws shape:', x_bws.shape
+    print 'y shape:', y.shape
+    print 'y sparsity:', 1-y.sum()*1.0/np.prod(y.shape)
 
-    # Valid
-    boolean_list = np.array([chrom in valid_chroms for chrom in windows_chroms])
-    valid_seq = x_seq[boolean_list]
-    valid_bws = x_bws[boolean_list]
-    valid_y = y[boolean_list]
-    valid_data = (valid_seq, valid_bws, valid_y)
-
-    # Test
-    boolean_list = np.array([chrom in test_chroms for chrom in windows_chroms])
-    test_seq = x_seq[boolean_list]
-    test_bws = x_bws[boolean_list]
-    test_y = y[boolean_list]
-    test_data = (test_seq, test_bws, test_y)
-
-    # Train
-    valid_test_chroms = valid_chroms + test_chroms
-    boolean_list = np.array([chrom not in valid_test_chroms for chrom in windows_chroms])
-    train_seq = x_seq[boolean_list]
-    train_bws = x_bws[boolean_list]
-    train_y = y[boolean_list]
-    train_data = (train_seq, train_bws, train_y)
-
-    print '\nTrain seq shape:', train_seq.shape
-    print 'Train bws shape:', train_bws.shape
-    print 'Train y shape:', train_y.shape
-    print 'Train y sparsity:', 1-train_y.sum()*1.0/np.prod(train_y.shape)
-
-    print '\nValid seq shape:', valid_seq.shape
-    print 'Valid bws shape:', valid_bws.shape
-    print 'Valid y shape:', valid_y.shape
-    print 'Valid y sparsity:', 1-valid_y.sum()*1.0/np.prod(valid_y.shape)
-
-    print '\nTest seq shape:', test_seq.shape
-    print 'Test bws shape:', test_bws.shape
-    print 'Test y shape:', test_y.shape
-    print 'Test y sparsity:', 1-test_y.sum()*1.0/np.prod(test_y.shape)
-
-    return train_data, valid_data, test_data
+    return x_seq, x_bws, y, windows
 
 
 def make_argument_parser():
@@ -190,17 +149,15 @@ def make_argument_parser():
     sys.argv
     """
     parser = argparse.ArgumentParser(
-        description="Train model.",
+        description="Visualize results of a trained model.",
         epilog='\n'.join(__doc__.strip().split('\n')[1:]).strip(),
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--inputdir', '-i', type=str, required=True,
                         help='Folder containing data generated by makeData.py')
-    parser.add_argument('--validchroms', '-v', type=str, required=False, nargs='+',
-                        default=['chr11'],
-                        help='Chromosome(s) to set aside for validation.')
-    parser.add_argument('--testchroms', '-t', type=str, required=False, nargs='+',
-                        default=['chr10'],
-                        help='Chromosome(s) to set aside for testing.')
+    parser.add_argument('--modeldir', '-m', type=str, required=True,
+                        help='Folder containing trained model generated by train.py.')
+    parser.add_argument('--tfs', '-t', type=str, required=True,
+                        help='File containing list of TFs.')
     parser.add_argument('--recurrent', '-r', action='store_true',
                         help='Save data as long sequences for fully recurrent models.')
     parser.add_argument('--seqonly', '-s', action='store_true',
@@ -221,10 +178,10 @@ def main():
     args = parser.parse_args()
 
     input_dir = args.inputdir
-    valid_chroms = args.validchroms
-    test_chroms = args.testchroms
+    model_dir = args.modeldir
     recurrent = args.recurrent
     seqonly = args.seqonly
+    tfs = np.loadtxt(args.tfs, dtype=str)
 
     if args.outputdir is None:
         clobber = True
@@ -245,9 +202,9 @@ def main():
                 print >> sys.stderr, ('output directory (%s) already exists '
                                       'so it will be clobbered') % output_dir
 
-    train_data, valid_data, test_data = load_data(input_dir, valid_chroms, test_chroms)
+    x_seq, x_bws, test_y, windows = load_data(input_dir)
 
-    train(train_data, valid_data, test_data, seqonly, output_dir)
+    output_results(x_seq, x_bws, test_y, windows, tfs, seqonly, model_dir, output_dir)
 
 
 if __name__ == '__main__':

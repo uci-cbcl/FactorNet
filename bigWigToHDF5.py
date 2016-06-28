@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 """
-Script for preprocessing data with a user-supplied DNase BED file.
+Script for preprocessing data with a user-supplied bigWig file. Also imputes missing values and
+normalizes values.
 
-Use `makeData2.py -h` to see an auto-generated description of advanced options.
+Use `bigWigToHDF5.py -h` to see an auto-generated description of advanced options.
 """
 
 import numpy as np
 import pyBigWig
 import h5py
+from scipy.ndimage.filters import uniform_filter1d
 
 # Standard library imports
 import sys
@@ -24,15 +26,41 @@ def convert(bigwig_filename, output_filename, mode):
     for chrom in chroms:
         print 'Processing chromosome:', chrom
         chrom_size = chroms[chrom]
-        chrom_values = np.array(bw.values(chrom, 0, chrom_size), dtype=np.float32)
-        if mode == 'footprinting':
+        chrom_values = np.array(bw.values(chrom, 0, chrom_size))
+        if mode == 'chrommean':
             # If a value is undefined, impute with 0
             chrom_nan = np.isnan(chrom_values)
             impute_value = 0
             chrom_values[chrom_nan] = impute_value
             chrom_sum = chrom_values.sum()
             chrom_values = chrom_values / chrom_sum * chrom_size / 1000.0
-        f.create_dataset(chrom, data=chrom_values, compression='gzip')
+        if mode == 'localzscore':  # z-score localized normalization
+            # If a value is undefined, impute with 0
+            chrom_nan = np.isnan(chrom_values)
+            impute_value = 0
+            chrom_values[chrom_nan] = impute_value
+            filter_length = 1000001
+            chrom_local_means = uniform_filter1d(chrom_values, filter_length, mode='constant')
+            chrom_local_sqmeans = uniform_filter1d(chrom_values**2, filter_length, mode='constant')
+            chrom_local_stds = np.sqrt(chrom_local_sqmeans - chrom_local_means**2)
+            chrom_values = (chrom_values - chrom_local_means) / chrom_local_stds
+            # Replace any nans with zeroes
+            chrom_nan = np.isnan(chrom_values)
+            impute_value = 0
+            chrom_values[chrom_nan] = impute_value
+        if mode == 'localmean':  # localized normalization, divide by mean
+            # If a value is undefined, impute with 0
+            chrom_nan = np.isnan(chrom_values)
+            impute_value = 0
+            chrom_values[chrom_nan] = impute_value
+            filter_length = 1000001
+            chrom_local_means = uniform_filter1d(chrom_values, filter_length, mode='constant')
+            chrom_values = chrom_values / chrom_local_means / 1000.0
+            # Replace any nans with zeroes
+            chrom_nan = np.isnan(chrom_values)
+            impute_value = 0
+            chrom_values[chrom_nan] = impute_value
+        f.create_dataset(chrom, data=chrom_values.astype(np.float32), compression='gzip')
     f.close()
     bw.close()
 
@@ -50,7 +78,8 @@ def make_argument_parser():
                         help='1D bigWig files.')
     parser.add_argument('--output', '-o', type=str, required=True,
                         help='The output file.')
-    parser.add_argument('--mode', '-m', choices=['none', 'footprinting'], default='none',
+    parser.add_argument('--mode', '-m', choices=['none', 'chrommean', 'localzscore', 'localmean'],
+                        default='none',
                         help='How to normalize the data.')
     return parser
 
