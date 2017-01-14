@@ -1,8 +1,8 @@
 README for FactorNet
 ====================
 
-Citing DanQ
-===========
+Citing FactorNet
+================
 Quang, D. and Xie, X. ``FactorNet: a deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-resolution sequential data'', In preparation, 2017.
 
 INSTALL
