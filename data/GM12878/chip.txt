@@ -1,0 +1,15 @@
+ChIPseq.GM12878.ATF7.conservative.train.narrowPeak.gz	ATF7	ChIPseq.GM12878.ATF7.relaxed.narrowPeak.gz
+ChIPseq.GM12878.CREB1.conservative.train.narrowPeak.gz	CREB1	ChIPseq.GM12878.CREB1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.E2F1.conservative.train.narrowPeak.gz	E2F1	ChIPseq.GM12878.E2F1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.EGR1.conservative.train.narrowPeak.gz	EGR1	ChIPseq.GM12878.EGR1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.EP300.conservative.train.narrowPeak.gz	EP300	ChIPseq.GM12878.EP300.relaxed.narrowPeak.gz
+ChIPseq.GM12878.GABPA.conservative.train.narrowPeak.gz	GABPA	ChIPseq.GM12878.GABPA.relaxed.narrowPeak.gz
+ChIPseq.GM12878.MAFK.conservative.train.narrowPeak.gz	MAFK	ChIPseq.GM12878.MAFK.relaxed.narrowPeak.gz
+ChIPseq.GM12878.MAX.conservative.train.narrowPeak.gz	MAX	ChIPseq.GM12878.MAX.relaxed.narrowPeak.gz
+ChIPseq.GM12878.RFX5.conservative.train.narrowPeak.gz	RFX5	ChIPseq.GM12878.RFX5.relaxed.narrowPeak.gz
+ChIPseq.GM12878.SPI1.conservative.train.narrowPeak.gz	SPI1	ChIPseq.GM12878.SPI1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.SRF.conservative.train.narrowPeak.gz	SRF	ChIPseq.GM12878.SRF.relaxed.narrowPeak.gz
+ChIPseq.GM12878.TAF1.conservative.train.narrowPeak.gz	TAF1	ChIPseq.GM12878.TAF1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.TCF12.conservative.train.narrowPeak.gz	TCF12	ChIPseq.GM12878.TCF12.relaxed.narrowPeak.gz
+ChIPseq.GM12878.YY1.conservative.train.narrowPeak.gz	YY1	ChIPseq.GM12878.YY1.relaxed.narrowPeak.gz
+ChIPseq.GM12878.ZNF143.conservative.train.narrowPeak.gz	ZNF143	ChIPseq.GM12878.ZNF143.relaxed.narrowPeak.gz
