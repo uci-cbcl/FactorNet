@@ -1,6 +1,8 @@
 README for FactorNet
 ====================
 
+README still under construction (1/25/17).
+
 Citing FactorNet
 ================
 Quang, D. and Xie, X. ``FactorNet: a deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-resolution sequential data'', In preparation, 2017.
@@ -20,8 +22,8 @@ $ python setup.py develop
 ```
 
 * [pyfasta] (https://pypi.python.org/pypi/pyfasta) (0.5.2).
-* [pybedtools] (https://pypi.python.org/pypi/pybedtools) (0.7.8).
-* [parmap] (https://pypi.python.org/pypi/parmap/1.3.0) (1.3.0).
+* [pybedtools] (https://pypi.python.org/pypi/pybedtools) (0.7.8). Also requires [bedtools2] (https://github.com/arq5x/bedtools2).
+* [parmap] (https://pypi.python.org/pypi/parmap/1.3.0) (1.3.0). Helps parallelize certain functions like preprocessing multiple BED files.
 
 
 * [keras] (https://github.com/fchollet/keras/releases/tag/1.1.1) (1.1.1). Deep learning package that uses Theano backend. Newer versions are likely to be fine, but Keras has a history of not being backwards compatible with older versions.
@@ -29,3 +31,5 @@ $ python setup.py develop
 
 USAGE
 =====
+
+
