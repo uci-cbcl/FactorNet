@@ -28,8 +28,23 @@ $ python setup.py develop
 
 * [keras] (https://github.com/fchollet/keras/releases/tag/1.1.1) (1.1.1). Deep learning package that uses Theano backend. Newer versions are likely to be fine, but Keras has a history of not being backwards compatible with older versions.
 
+Optional
+--------
+* [CUDA] (https://developer.nvidia.com/cuda-toolkit) (8.0). Theano can use either CPU or GPU, but using a GPU is almost entirely necessary for a network and dataset this large.
+
+* [cuDNN] (https://developer.nvidia.com/cudnn) (5.1). Significantly speeds up convolution and recurrent operations. 
 
 USAGE
 =====
+Data
+----
 
+The README in the data folder will give you an idea of how to format the data if you want to use FactorNet on your own data.
+
+Training
+--------
+
+The README in the models folder will give you an idea of what the program outputs once training completes.
+Prediction
+----------
 
