@@ -1,0 +1,9 @@
+ChIPseq.HCT116.ATF3.conservative.train.narrowPeak.gz	ATF3	ChIPseq.HCT116.ATF3.relaxed.narrowPeak.gz
+ChIPseq.HCT116.CEBPB.conservative.train.narrowPeak.gz	CEBPB	ChIPseq.HCT116.CEBPB.relaxed.narrowPeak.gz
+ChIPseq.HCT116.EGR1.conservative.train.narrowPeak.gz	EGR1	ChIPseq.HCT116.EGR1.relaxed.narrowPeak.gz
+ChIPseq.HCT116.JUND.conservative.train.narrowPeak.gz	JUND	ChIPseq.HCT116.JUND.relaxed.narrowPeak.gz
+ChIPseq.HCT116.MAX.conservative.train.narrowPeak.gz	MAX	ChIPseq.HCT116.MAX.relaxed.narrowPeak.gz
+ChIPseq.HCT116.SRF.conservative.train.narrowPeak.gz	SRF	ChIPseq.HCT116.SRF.relaxed.narrowPeak.gz
+ChIPseq.HCT116.TCF7L2.conservative.train.narrowPeak.gz	TCF7L2	ChIPseq.HCT116.TCF7L2.relaxed.narrowPeak.gz
+ChIPseq.HCT116.TEAD4.conservative.train.narrowPeak.gz	TEAD4	ChIPseq.HCT116.TEAD4.relaxed.narrowPeak.gz
+ChIPseq.HCT116.YY1.conservative.train.narrowPeak.gz	YY1	ChIPseq.HCT116.YY1.relaxed.narrowPeak.gz

@@ -1,0 +1,8 @@
+ChIPseq.MCF-7.CTCF.conservative.train.narrowPeak.gz	CTCF	ChIPseq.MCF-7.CTCF.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.EGR1.conservative.train.narrowPeak.gz	EGR1	ChIPseq.MCF-7.EGR1.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.GABPA.conservative.train.narrowPeak.gz	GABPA	ChIPseq.MCF-7.GABPA.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.JUND.conservative.train.narrowPeak.gz	JUND	ChIPseq.MCF-7.JUND.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.MYC.conservative.train.narrowPeak.gz	MYC	ChIPseq.MCF-7.MYC.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.REST.conservative.train.narrowPeak.gz	REST	ChIPseq.MCF-7.REST.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.RFX5.conservative.train.narrowPeak.gz	RFX5	ChIPseq.MCF-7.RFX5.relaxed.narrowPeak.gz
+ChIPseq.MCF-7.TCF12.conservative.train.narrowPeak.gz	TCF12	ChIPseq.MCF-7.TCF12.relaxed.narrowPeak.gz

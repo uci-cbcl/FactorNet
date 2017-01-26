@@ -1,0 +1,2 @@
+wgEncodeDukeMapabilityUniqueness35bp.bigWig	Unique35
+PC-3.1x.bw	DGF

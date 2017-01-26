@@ -1,0 +1,2 @@
+ChIPseq.Panc1.REST.conservative.train.narrowPeak.gz	REST	ChIPseq.Panc1.REST.relaxed.narrowPeak.gz
+ChIPseq.Panc1.TCF7L2.conservative.train.narrowPeak.gz	TCF7L2	ChIPseq.Panc1.TCF7L2.relaxed.narrowPeak.gz

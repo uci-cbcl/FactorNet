@@ -1,0 +1,3 @@
+ChIPseq.IMR-90.CEBPB.conservative.train.narrowPeak.gz	CEBPB	ChIPseq.IMR-90.CEBPB.relaxed.narrowPeak.gz
+ChIPseq.IMR-90.CTCF.conservative.train.narrowPeak.gz	CTCF	ChIPseq.IMR-90.CTCF.relaxed.narrowPeak.gz
+ChIPseq.IMR-90.MAFK.conservative.train.narrowPeak.gz	MAFK	ChIPseq.IMR-90.MAFK.relaxed.narrowPeak.gz

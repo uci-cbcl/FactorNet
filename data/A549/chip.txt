@@ -1,0 +1,7 @@
+ChIPseq.A549.CEBPB.conservative.train.narrowPeak.gz	CEBPB	ChIPseq.A549.CEBPB.relaxed.narrowPeak.gz
+ChIPseq.A549.CTCF.conservative.train.narrowPeak.gz	CTCF	ChIPseq.A549.CTCF.relaxed.narrowPeak.gz
+ChIPseq.A549.E2F6.conservative.train.narrowPeak.gz	E2F6	ChIPseq.A549.E2F6.relaxed.narrowPeak.gz
+ChIPseq.A549.GATA3.conservative.train.narrowPeak.gz	GATA3	ChIPseq.A549.GATA3.relaxed.narrowPeak.gz
+ChIPseq.A549.MAX.conservative.train.narrowPeak.gz	MAX	ChIPseq.A549.MAX.relaxed.narrowPeak.gz
+ChIPseq.A549.MYC.conservative.train.narrowPeak.gz	MYC	ChIPseq.A549.MYC.relaxed.narrowPeak.gz
+ChIPseq.A549.TEAD4.conservative.train.narrowPeak.gz	TEAD4	ChIPseq.A549.TEAD4.relaxed.narrowPeak.gz

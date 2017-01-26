@@ -1,0 +1,12 @@
+ChIPseq.K562.ATF3.conservative.train.narrowPeak.gz	ATF3	ChIPseq.K562.ATF3.relaxed.narrowPeak.gz
+ChIPseq.K562.ATF7.conservative.train.narrowPeak.gz	ATF7	ChIPseq.K562.ATF7.relaxed.narrowPeak.gz
+ChIPseq.K562.CEBPB.conservative.train.narrowPeak.gz	CEBPB	ChIPseq.K562.CEBPB.relaxed.narrowPeak.gz
+ChIPseq.K562.CREB1.conservative.train.narrowPeak.gz	CREB1	ChIPseq.K562.CREB1.relaxed.narrowPeak.gz
+ChIPseq.K562.CTCF.conservative.train.narrowPeak.gz	CTCF	ChIPseq.K562.CTCF.relaxed.narrowPeak.gz
+ChIPseq.K562.EP300.conservative.train.narrowPeak.gz	EP300	ChIPseq.K562.EP300.relaxed.narrowPeak.gz
+ChIPseq.K562.JUND.conservative.train.narrowPeak.gz	JUND	ChIPseq.K562.JUND.relaxed.narrowPeak.gz
+ChIPseq.K562.MAX.conservative.train.narrowPeak.gz	MAX	ChIPseq.K562.MAX.relaxed.narrowPeak.gz
+ChIPseq.K562.MYC.conservative.train.narrowPeak.gz	MYC	ChIPseq.K562.MYC.relaxed.narrowPeak.gz
+ChIPseq.K562.SRF.conservative.train.narrowPeak.gz	SRF	ChIPseq.K562.SRF.relaxed.narrowPeak.gz
+ChIPseq.K562.TAF1.conservative.train.narrowPeak.gz	TAF1	ChIPseq.K562.TAF1.relaxed.narrowPeak.gz
+ChIPseq.K562.TEAD4.conservative.train.narrowPeak.gz	TEAD4	ChIPseq.K562.TEAD4.relaxed.narrowPeak.gz

@@ -1,0 +1,10 @@
+bwtool paste liver.1x.bw DNASE.liver.fc.signal.bigwig -skip-NA -wigtype=fix | python ../bwtool_paste_mult.py | gzip > liver.1x.fc.prod.wig.gz
+wigToBigWig liver.1x.fc.prod.wig.gz /home/dxquang/resources/hg19/genome/hg19.chrom.sizes liver.1x.fc.prod.bw
+
+bwtool paste liver.1x.bw DNASE.liver.fc.signal.bigwig -skip-NA -wigtype=fix | python ../bwtool_paste_geomult.py | gzip > liver.1x.fc.geo.wig.gz
+wigToBigWig liver.1x.fc.geo.wig.gz /home/dxquang/resources/hg19/genome/hg19.chrom.sizes liver.1x.fc.geo.bw
+
+bwtool paste DNASE.liver.fc.signal.bigwig liver.1x.bw -skip-NA -wigtype=fix | python ../bwtool_paste_arcsinhmult.py | gzip > liver.1x.fc.arcsinhprod.wig.gz
+wigToBigWig liver.1x.fc.arcsinhprod.wig.gz /home/dxquang/resources/hg19/genome/hg19.chrom.sizes liver.1x.fc.arcsinhprod.bw
+
+

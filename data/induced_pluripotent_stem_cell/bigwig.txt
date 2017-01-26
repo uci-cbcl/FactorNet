@@ -1,0 +1,2 @@
+wgEncodeDukeMapabilityUniqueness35bp.bigWig	Unique35
+induced_pluripotent_stem_cell.1x.bw	DGF

@@ -1,0 +1,16 @@
+ChIPseq.HeLa-S3.CEBPB.conservative.train.narrowPeak.gz	CEBPB	ChIPseq.HeLa-S3.CEBPB.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.CTCF.conservative.train.narrowPeak.gz	CTCF	ChIPseq.HeLa-S3.CTCF.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.E2F1.conservative.train.narrowPeak.gz	E2F1	ChIPseq.HeLa-S3.E2F1.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.E2F6.conservative.train.narrowPeak.gz	E2F6	ChIPseq.HeLa-S3.E2F6.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.EP300.conservative.train.narrowPeak.gz	EP300	ChIPseq.HeLa-S3.EP300.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.GABPA.conservative.train.narrowPeak.gz	GABPA	ChIPseq.HeLa-S3.GABPA.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.JUND.conservative.train.narrowPeak.gz	JUND	ChIPseq.HeLa-S3.JUND.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.MAFK.conservative.train.narrowPeak.gz	MAFK	ChIPseq.HeLa-S3.MAFK.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.MAX.conservative.train.narrowPeak.gz	MAX	ChIPseq.HeLa-S3.MAX.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.MYC.conservative.train.narrowPeak.gz	MYC	ChIPseq.HeLa-S3.MYC.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.REST.conservative.train.narrowPeak.gz	REST	ChIPseq.HeLa-S3.REST.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.RFX5.conservative.train.narrowPeak.gz	RFX5	ChIPseq.HeLa-S3.RFX5.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.STAT3.conservative.train.narrowPeak.gz	STAT3	ChIPseq.HeLa-S3.STAT3.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.TAF1.conservative.train.narrowPeak.gz	TAF1	ChIPseq.HeLa-S3.TAF1.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.TCF7L2.conservative.train.narrowPeak.gz	TCF7L2	ChIPseq.HeLa-S3.TCF7L2.relaxed.narrowPeak.gz
+ChIPseq.HeLa-S3.ZNF143.conservative.train.narrowPeak.gz	ZNF143	ChIPseq.HeLa-S3.ZNF143.relaxed.narrowPeak.gz
