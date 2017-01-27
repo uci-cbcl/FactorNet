@@ -54,7 +54,7 @@ Prediction
 ----------
 
 ```
-$ python predict.py -m -b -o
+$ python predict.py -f FOXA2 -i data/HepG2 -m -b -o
 ```
 
 
