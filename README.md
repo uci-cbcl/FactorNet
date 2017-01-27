@@ -53,5 +53,8 @@ The README in the models folder will give you an idea of what the program output
 Prediction
 ----------
 
+```
+$ cd Theano
+```
 
 
