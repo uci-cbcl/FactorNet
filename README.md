@@ -54,7 +54,7 @@ Prediction
 ----------
 
 ```
-$ cd Theano
+$ python predict.py -m -b -o
 ```
 
 
