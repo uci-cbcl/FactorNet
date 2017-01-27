@@ -1,7 +1,7 @@
 README for FactorNet
 ====================
 
-README still under construction (1/25/17).
+README still under construction (1/26/17). As you can tell, there are a lot of similarly named files. Many lines of code were embarassingly copied in multiple scripts instead of simply shared. I will try to condense everything into 2 or 3 script files soon, but everything I used for the ENCODE-DREAM competition is here.
 
 Citing FactorNet
 ================
@@ -21,8 +21,12 @@ $ cd Theano
 $ python setup.py develop
 ```
 
-* [pyfasta] (https://pypi.python.org/pypi/pyfasta) (0.5.2).
+* [pyfasta] (https://pypi.python.org/pypi/pyfasta) (0.5.2). Loads the hg19.fa FASTA file in the resources folder.
+
+* [pyBigWig] (https://github.com/dpryan79/pyBigWig/releases/tag/0.2.8) (0.2.8). Efficiently loads bigWig continuous values into memory. Newer versions should be fine.
+
 * [pybedtools] (https://pypi.python.org/pypi/pybedtools) (0.7.8). Also requires [bedtools2] (https://github.com/arq5x/bedtools2).
+
 * [parmap] (https://pypi.python.org/pypi/parmap/1.3.0) (1.3.0). Helps parallelize certain functions like preprocessing multiple BED files.
 
 
@@ -39,12 +43,15 @@ USAGE
 Data
 ----
 
-The README in the data folder will give you an idea of how to format the data if you want to use FactorNet on your own data.
+The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
 
 Training
 --------
 
 The README in the models folder will give you an idea of what the program outputs once training completes.
+
 Prediction
 ----------
+
+
 
