@@ -54,7 +54,7 @@ Prediction
 ----------
 
 ```
-$ python predict.py -f FOXA2 -i data/HepG2 -m -b -o
+$ python predict.py -f FOXA2 -i data/liver -m models/multiTask_DGF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
 ```
 
 
