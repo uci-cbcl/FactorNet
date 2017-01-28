@@ -48,6 +48,10 @@ The README in the data folder will give you an idea of how to format cell data i
 Training
 --------
 
+```
+$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_max -k 128 -r 64 -d 128 -n 3 -e 50
+```
+
 The README in the models folder will give you an idea of what the program outputs once training completes.
 
 Prediction
