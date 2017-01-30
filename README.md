@@ -1,7 +1,7 @@
 README for FactorNet
 ====================
 
-README still under construction (1/26/17). As you can tell, there are a lot of similarly named files. Many lines of code were embarassingly copied in multiple scripts instead of simply shared. I will try to condense everything into 2 or 3 script files soon, but everything I used for the ENCODE-DREAM competition is here.
+README still under construction (1/30/17). As you can tell, there are a lot of similarly named files. Many lines of code were embarassingly copied in multiple scripts instead of simply shared. I will try to condense everything into 2 or 3 script files soon, but everything I used for the ENCODE-DREAM competition is here.
 
 Citing FactorNet
 ================
@@ -43,7 +43,7 @@ USAGE
 Data
 ----
 
-The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
+Data are organized into one folder per cell line. The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
 
 Training
 --------
