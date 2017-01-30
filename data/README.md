@@ -8,7 +8,7 @@ bigWig files
 
 Due to file size limits, bigWig files are not included in this repository. You can download them from the following links. Make sure you place the downloaded bigWig files into their respective folders. It should be straightforward to tell from the file names which files go where. 
 
-[Duke 35 bp mappability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp)
+[Duke 35 bp mappability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
 
 [GM12878 1x DGF] (https://www.synapse.org/#!Synapse:syn8073652)
 
