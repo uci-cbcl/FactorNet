@@ -1,3 +1,8 @@
+Description of data input
+=========================
+
+Data are organized by one cell type per folder.
+
 [Duke 35 bp mappability uniqueness] (http: //hgdownload .cse.ucsc.edu /goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp)
 
 [GM12878 1x DGF] (https://www.synapse.org/#!Synapse:syn8073652)
