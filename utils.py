@@ -266,24 +266,6 @@ def get_output(input_layer, hidden_layers):
     return output
 
 
-def roc_auc_score(y_true, y_pred):
-    from keras import backend as K    
-    pos = (y_pred*y_true).nonzero_values()
-    neg = (y_pred*(1-y_true)).nonzero_values()
-
-    pos = K.expand_dims(pos, 0)
-    neg = K.expand_dims(neg, 1)
-
-    gamma = 0.2
-    p     = 3
-
-    difference = pos - neg - gamma
-
-    masked_difference = K.clip(difference, -np.inf, 0)
-
-    return K.sum(K.pow(-masked_difference, p))
-
-
 def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense):
     from keras import backend as K
     from keras.models import Model
