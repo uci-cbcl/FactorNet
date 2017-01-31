@@ -3,9 +3,20 @@ Description of data input
 
 Data are organized by one cell type per folder. I included data from the 13 cell lines used for the ENCODE-DREAM competition. Each folder contains the following files:
 
-* bigWig file(s). The bigWig format is a standard data format for displaying dense, continuous data that can be visualized in in a genome browser. bigWig files are compressed and indexed for portability and speed. The most important type of bigWig file used in this project is the 1x coverage normalized DNase 5' cut signal. 
+* bigWig file(s). The bigWig format is a standard data format for displaying dense, continuous data that can be visualized in in a genome browser. bigWig files are compressed and indexed for portability and speed. The most important type of bigWig file used in this project is the 1x coverage normalized DNase 5' cut signal. With GM12878 as an example, the following details the requirements and command lines to convert BAM files into a bigWig file:
+
+Required
+--------
+* [Samtools] (https://www.python.org)
+* [deepTools] (https://www.python.org). Despite its name, it has nothing to do with deep learning.
+
+
 ```
-$ 
+$ ls
+DNASE.GM12878.biorep1.techrep1.bam  DNASE.GM12878.biorep2.techrep1.bam
+$ samtools merge GM12878.bam DNASE.GM12878.biorep*.techrep1.bam
+$ samtools index GM12878.bam
+$ bamCoverage --bam ${i}.bam -o ${i}.1x.bw --outFileFormat bigwig --normalizeTo1x 2478297382 --ignoreForNormalization chrX chrM --Offset 1 --binSize 1 --numberOfProcessors 12 --blackListFileName /home/dxquang/PycharmProjects/FactorNet/resources/wgEncodeDacMapabilityConsensusExcludable.bed.gz --skipNonCoveredRegions
 ```
 * BED file(s). 
 
