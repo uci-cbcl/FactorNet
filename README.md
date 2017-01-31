@@ -50,27 +50,41 @@ $ tar zxvf chromFa.tar.gz
 $ cat chr*.fa > hg19.fa
 ```
 
-All training data are in the data folder. Training data are organized into one folder per cell line. The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
+All training data are in the data folder. Training data are organized into one folder per cell line. The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data. You will also need download additional files into the data folder before you can proceed with the example code below.
 
 Training and prediction
 -----------------------
 
+There are five different type of models used for the ENCODE-DREAM competition. These models differ in their training method and types of features they incorporate. Training is primarily done with the train and predict scripts. Currently, the code is a little messy, so there is almost a train and predict script for each of the five different types of models. I plan on cleaning up the code into just one train and one predict script. I've also included a sample BED file in the resources folder (sample_ladder_regions.blacklistfiltered.bed.gz) to make predictions on. The README in the models folder describe what the program outputs once training completes.
+ The following are descriptions and code snppets for each model.
+
 * multiTask
+This model trains with multiple TF binding targets in a joint multi-task fashion. Each epoch, it draws . Bins labeled as ambiguous are treated as negative bins. This model can only train on one cell line.
 ```
+$ python train.py -i data/HepG2
 $ python predict.py -f FOXA2 -i data/liver -m models/multiTask_DGF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
 ```
 
 * onePeak
+The onePeak model, and all subsequent models, are trained on a single TF in a single-task fashion. Unlike the multiTask model, it can leverage data from multiple reference cell lines and ignores ambiguous peaks.
 ```
 $ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_max -k 128 -r 64 -d 128 -n 3 -e 50
 ```
+
 * meta
+```
+```
 
 * GENCODE
+This model is very similar to the meta model. Like the meta model, it incorporates non-sequential metadata features, except at the bin level instead of at the cell type level. Bins are annotated with GENCODE (promoters, introns, 5' UTR, 3' UTR, and CDS) and unmasked CpG islands. Promoters are defined as genomic regions up to 300 bps upstream and 100 bps downstream of a TSS.
+
+```
+$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_max -k 128 -r 64 -d 128 -n 3 -e 50
+```
 
 * metaGENCODE
+This model includes the metadata features from both the meta and GENCODE models.
 
-The README in the models folder describe what the program outputs once training completes.
 
 
 
