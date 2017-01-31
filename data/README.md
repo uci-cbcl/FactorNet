@@ -7,18 +7,26 @@ Data are organized by one cell type per folder. I included data from the 13 cell
 
 Required
 --------
-* [Samtools] (https://www.python.org)
-* [deepTools] (https://www.python.org). Despite its name, it has nothing to do with deep learning.
-
+* [samtools] (https://github.com/samtools/samtools). Useful for manipulating BAM files. If you do genomics, chances are you already have this. Latest version should be sufficient.
+* [deepTools] (https://github.com/fidelram/deepTools). Tools for normalizing read coverage in BAM files. Despite its name, it has nothing to do with deep learning.
 
 ```
 $ ls
 DNASE.GM12878.biorep1.techrep1.bam  DNASE.GM12878.biorep2.techrep1.bam
 $ samtools merge GM12878.bam DNASE.GM12878.biorep*.techrep1.bam
 $ samtools index GM12878.bam
-$ bamCoverage --bam ${i}.bam -o ${i}.1x.bw --outFileFormat bigwig --normalizeTo1x 2478297382 --ignoreForNormalization chrX chrM --Offset 1 --binSize 1 --numberOfProcessors 12 --blackListFileName /home/dxquang/PycharmProjects/FactorNet/resources/wgEncodeDacMapabilityConsensusExcludable.bed.gz --skipNonCoveredRegions
+$ bamCoverage --bam ${i}.bam -o ${i}.1x.bw --outFileFormat bigwig --normalizeTo1x 2478297382 --ignoreForNormalization chrX chrM --Offset 1 --binSize 1 --numberOfProcessors 12 --blackListFileName resources/wgEncodeDacMapabilityConsensusExcludable.bed.gz --skipNonCoveredRegions
+$ # You can find the wgEncodeDacMapabilityConsensusExcludable.bed.gz file in the resources folder.
+$ # Unfortunately, I neglected the Duke blacklist file at the time I generated these bigWig files.
 ```
-* BED file(s). 
+
+* Gzipped BED file(s). Genomic interval files containing TF binding peak locations (both conserved and relaxed peaks).
+
+* bigwig.txt. Two column tab delimited file describing bigWig files to be used for training. First column is the file names and second column is the identifier names each bigWig. When leveraging data from multiple cell lines, the identifier names for each cell line must match and be in the same order.
+
+* chip.txt. Two column tab delimited file describing peak interval files to be used for training. First column is the file names of the gzipped peak BED files and the second column is the name of the transcription factor corresponding to that BED file. Optionally, a third column of the file names of relaxed peaks can be included. If relaxed peak files are included, negative training bins will be drawn from outside of the relaxed peaks; otherwise, negative training bins will be drawn from outside of the conservative peaks.
+
+* meta.txt. Two column tab delimited file describing cell-type specific metadata to be used for training. First column is the metadata value and second column is the identifier names each feature. When leveraging data from multiple cell lines, the identifier names for each cell line must match and be in the same order.
 
 bigWig files
 ============
