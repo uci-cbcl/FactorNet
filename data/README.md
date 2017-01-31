@@ -6,9 +6,10 @@ Data are organized by one cell type per folder.
 bigWig files
 ============
 
-Due to file size limits, bigWig files are not included in this repository. You can download them from the following links. Make sure you place the downloaded bigWig files into their respective folders. It should be straightforward to tell from the file names which files go where. 
+Due to file size limits, bigWig files are not included in this repository. You can download them from the following links. Make sure you place the downloaded bigWig files into their respective folders. It should be straightforward to tell from the file names which files go where. The first track is the 35 bp mapability uniqueness track and belongs in every folder. I highly recommend creating soft links using the ln command so that you are not wasting disk space with multiple copies of the track.
+```
 
-[Duke 35 bp mappability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
+[Duke 35 bp mapability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
 
 [GM12878 1x DGF] (https://www.synapse.org/#!Synapse:syn8073652)
 
