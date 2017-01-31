@@ -3,6 +3,12 @@ Description of data input
 
 Data are organized by one cell type per folder. I included data from the 13 cell lines used for the ENCODE-DREAM competition. Each folder contains the following files:
 
+* bigWig file(s). The bigWig format is a standard data format for displaying dense, continuous data that can be visualized in in a genome browser. bigWig files are compressed and indexed for portability and speed. The most important type of bigWig file used in this project is the 1x coverage normalized DNase 5' cut signal. 
+```
+$ 
+```
+* BED file(s). 
+
 bigWig files
 ============
 
