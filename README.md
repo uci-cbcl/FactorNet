@@ -42,23 +42,35 @@ USAGE
 =====
 Data
 ----
-
-Data are organized into one folder per cell line. The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
-
-Training
---------
+Before training, you must have a copy of the hg19 genome FASTA, hg19.fa, in the resources folder. Due to space issues, the FASTA file is not included in this repository. This file also cannot be compressed, so you will have to deal with it taking up quite a bit of space on the hard drive. You can get yourself a copy of the file with the following command lines:
 
 ```
-$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_max -k 128 -r 64 -d 128 -n 3 -e 50
+$ wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/chromFa.tar.gz
+$ tar zxvf chromFa.tar.gz
+$ cat chr*.fa > hg19.fa
 ```
 
-The README in the models folder will give you an idea of what the program outputs once training completes.
+All training data are in the data folder. Training data are organized into one folder per cell line. The README in the data folder will give you an idea of how to format cell data if you want to use FactorNet on your own data.
 
-Prediction
-----------
+Training and prediction
+-----------------------
 
+* multiTask
 ```
 $ python predict.py -f FOXA2 -i data/liver -m models/multiTask_DGF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
 ```
+
+* onePeak
+```
+$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_max -k 128 -r 64 -d 128 -n 3 -e 50
+```
+* meta
+
+* GENCODE
+
+* metaGENCODE
+
+The README in the models folder describe what the program outputs once training completes.
+
 
 
