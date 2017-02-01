@@ -62,32 +62,39 @@ The following are descriptions and code snppets for each model.
 * multiTask
 This model trains with multiple TF binding targets in a joint multi-task fashion. Each epoch, it draws . Bins labeled as ambiguous are treated as negative bins. This model can only train on one cell line.
 ```
-$ python train.py -i data/HepG2 -oc multiTask_DGF_HepG2
-$ python predict.py -f FOXA2 -i data/liver -m multiTask_DGF_HepG2 -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
+$ python train.py -i data/HepG2 -oc multiTask_Unique35_DGF_HepG2
+$ # If you want to remove the 35 bp Uniqueness track as features, remove that line from the bigwig.txt file in data/HepG2.
+$ python predict.py -f FOXA2 -i data/liver -m multiTask_Unique35_DGF_HepG2 -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
 $ # The predict script can only predict one TF at a time, which must be specified with the -f option.
 ```
 
 * onePeak
-The onePeak model, and all subsequent models, are trained on a single TF in a single-task fashion. Unlike the multiTask model, it can leverage data from multiple reference cell lines and ignores ambiguous peaks. 
+The onePeak model, and all subsequent models, are trained on a single TF in a single-task fashion. Unlike the multiTask model, it can leverage data from multiple reference cell lines and ignores ambiguous peaks. The next three models are more or less variations of this model, but modified to incorporate non-sequential metadata features such as gene expression and gene annotations.
 ```
 $ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX -k 128 -r 64 -d 128 -n 3 -e 50
-$ python predict.py -f FOXA2 -i data/liver -m multiTask_DGF_HepG2 -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
+$ python predict.py -f MAX -i data/liver -m onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o MAX_liver.bed.gz
 ```
 
 * meta
+This model incorporates cell-type specific features such as gene expression. These features are specified in the meta.txt file in each data folder. 
 ```
+$ python train_meta.py -f GABPA -i data/GM12878 data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 -oc meta_Unique35_DGF_5n_GABPA -n 5
+$ python predict_meta.py -f GABPA -i data/liver -m meta_Unique35_DGF_5n_GABPA -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o GABPA_liver.bed.gz
 ```
 
 * GENCODE
 This model is very similar to the meta model. Like the meta model, it incorporates non-sequential metadata features, except at the bin level instead of at the cell type level. Bins are annotated with GENCODE (promoters, introns, 5' UTR, 3' UTR, and CDS) and unmasked CpG islands. Promoters are defined as genomic regions up to 300 bps upstream and 100 bps downstream of a TSS.
 
 ```
-$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX -k 128 -r 64 -d 128 -n 3 -e 50
+$ python train_gencode.py -f REST -i data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 data/Panc1 -oc GENCODE_Unique35_DGF_64k_128d_REST -k 64 -d 128
+$ python predict_gencode.py -f REST -i data/liver -m GENCODE_Unique35_DGF_64k_128d_REST -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o REST_liver.bed.gz
 ```
 
 * metaGENCODE
 This model includes the metadata features from both the meta and GENCODE models.
 ```
+$ python train_metagencode.py -f CTCF -i data/A549 data/H1-hESC data/HeLa-S3 data/HepG2 data/IMR-90 data/K562 data/MCF-7 -oc metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -k 128 -r 64 -d 128
+$ python predict_metagencode.py -f CTCF -i data/PC-3 -m metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o CTCF_PC-3.bed.gz
 ```
 
 
