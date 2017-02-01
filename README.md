@@ -93,7 +93,7 @@ $ python predict_gencode.py -f REST -i data/liver -m GENCODE_Unique35_DGF_64k_12
 * metaGENCODE
 This model includes the metadata features from both the meta and GENCODE models.
 ```
-$ python train_metagencode.py -f CTCF -i data/A549 data/H1-hESC data/HeLa-S3 data/HepG2 data/IMR-90 data/K562 data/MCF-7 metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -k 128 -r 64 -d 128
+$ python train_metagencode.py -f CTCF -i data/A549 data/H1-hESC data/HeLa-S3 data/HepG2 data/IMR-90 data/K562 data/MCF-7 -oc metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -k 128 -r 64 -d 128
 $ python predict_metagencode.py -f CTCF -i data/PC-3 -m metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o CTCF_PC-3.bed.gz
 ```
 
