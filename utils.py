@@ -12,8 +12,6 @@ w = 34
 w2 = w/2
 
 batch_size = 100
-seed = 1000000#420
-np.random.seed(seed)
 
 genome_sizes_file = 'resources/hg19.autoX.chrom.sizes'
 genome_fasta_file = 'resources/hg19.fa'
@@ -22,6 +20,10 @@ blacklist_file = 'resources/blacklist.bed.gz'
 genome_window_size = 200
 genome_window_step = 50
 shift_size = 20
+
+
+def set_seed(seed):
+    np.random.seed(seed)
 
 
 def chroms_filter(feature, chroms):
@@ -85,13 +87,13 @@ def make_features(positive_windows, y_positive, nonnegative_regions_bed, bigwig_
         stop = positive_window.stop
         if chrom in test_chroms:
             positive_windows_test.append(positive_window)
-            positive_data_test.append((chrom, start, stop, bigwig_files, target_array))
+            positive_data_test.append((chrom, start, stop, shift_size, bigwig_files, [], target_array))
         elif chrom in valid_chroms:
             positive_windows_valid.append(positive_window)
-            positive_data_valid.append((chrom, start, stop, bigwig_files, target_array))
+            positive_data_valid.append((chrom, start, stop, shift_size, bigwig_files, [], target_array))
         else:
             positive_windows_train.append(positive_window)
-            positive_data_train.append((chrom, start, stop, bigwig_files, target_array))
+            positive_data_train.append((chrom, start, stop, shift_size, bigwig_files, [], target_array))
 
     positive_windows_train = BedTool(positive_windows_train)
     positive_windows_valid = BedTool(positive_windows_valid)
@@ -102,32 +104,35 @@ def make_features(positive_windows, y_positive, nonnegative_regions_bed, bigwig_
     negative_windows_train = negative_windows_train.shuffle(g=genome_sizes_file,
                                                             incl=genome_bed_train.fn,
                                                             excl=nonnegative_regions_bed.fn,
-                                                            noOverlapping=False)
+                                                            noOverlapping=False,
+                                                            seed=np.random.randint(-214783648, 2147483647))
     print 'Getting negative validation examples'
     negative_windows_valid = positive_windows_valid.shuffle(g=genome_sizes_file,
                                                             incl=genome_bed_valid.fn,
                                                             excl=nonnegative_regions_bed.fn,
-                                                            noOverlapping=False)
+                                                            noOverlapping=False,
+                                                            seed=np.random.randint(-214783648, 2147483647))
     print 'Getting negative testing examples'
     negative_windows_test = positive_windows_test.shuffle(g=genome_sizes_file,
                                                           incl=genome_bed_test.fn,
                                                           excl=nonnegative_regions_bed.fn,
-                                                          noOverlapping=False)
+                                                          noOverlapping=False,
+                                                          seed=np.random.randint(-214783648, 2147483647))
 
     # Train
     print 'Extracting data from negative training BEDs'
     negative_targets = np.zeros(y_positive.shape[1])
-    negative_data_train = [(window.chrom, window.start, window.stop, bigwig_files, negative_targets)
+    negative_data_train = [(window.chrom, window.start, window.stop, shift_size, bigwig_files, [], negative_targets)
                            for window in negative_windows_train]
 
     # Validation
     print 'Extracting data from negative validation BEDs'
-    negative_data_valid = [(window.chrom, window.start, window.stop, bigwig_files, negative_targets)
+    negative_data_valid = [(window.chrom, window.start, window.stop, shift_size, bigwig_files, [], negative_targets)
                            for window in negative_windows_valid]
 
     # Testing
     print 'Extracting data from negative testing BEDs'
-    negative_data_test = [(window.chrom, window.start, window.stop, bigwig_files, negative_targets)
+    negative_data_test = [(window.chrom, window.start, window.stop, shift_size, bigwig_files, [], negative_targets)
                           for window in negative_windows_test]
     
     num_positive_train_windows = len(positive_data_train)
@@ -266,7 +271,7 @@ def get_output(input_layer, hidden_layers):
     return output
 
 
-def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense):
+def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_rate):
     from keras import backend as K
     from keras.models import Model
     from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
@@ -283,7 +288,7 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense):
         TimeDistributed(Dense(num_motifs, activation='relu')),
         MaxPooling1D(pool_length=w2, stride=w2),
         Bidirectional(LSTM(num_recurrent, dropout_W=0.1, dropout_U=0.1, return_sequences=True)),
-        Dropout(0.5),
+        Dropout(dropout_rate),
         Flatten(),
         Dense(num_dense, activation='relu'),
         Dense(num_tfs, activation='sigmoid')

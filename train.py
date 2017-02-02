@@ -71,8 +71,8 @@ def make_argument_parser():
                         default=420,
                         help='Random seed for consistency (default: 420).')
     parser.add_argument('--dropout', '-p', type=float, required=False,
-                        default=0.2,
-                        help='Dropout rate between the LSTM and dense layers (default: 0.2).')
+                        default=0.5,
+                        help='Dropout rate between the LSTM and dense layers (default: 0.5).')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-o', '--outputdir', type=str,
                        help='The output directory. Causes error if the directory already exists.')
@@ -92,6 +92,9 @@ def main():
     valid_chroms = args.validchroms
     test_chroms = args.testchroms
     epochs = args.epochs
+    seed = args.seed
+    utils.set_seed(seed)
+    dropout_rate = args.dropout
 
     num_motifs = args.kernels
     num_recurrent = args.recurrent
@@ -129,7 +132,7 @@ def main():
                                                                      genome, epochs,
                                                                      valid_chroms, test_chroms)
     print 'building model'
-    model = utils.make_model(len(tfs), len(bigwig_names), num_motifs, num_recurrent, num_dense)
+    model = utils.make_model(len(tfs), len(bigwig_names), num_motifs, num_recurrent, num_dense, dropout_rate)
 
     output_tf_file = open(output_dir + '/chip.txt', 'w')
     for tf in tfs:
