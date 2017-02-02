@@ -39,7 +39,8 @@ class DataIterator(Iterator):
             index_array, current_index, current_batch_size = next(self.index_generator)
         batch_X_seq = np.zeros((current_batch_size, self.seqlen, 4), dtype=bool)
         batch_X_bigwig = np.zeros((current_batch_size, self.seqlen, self.num_bigwigs), dtype=np.float32)
-        batch_X_meta = np.zeros((current_batch_size, self.num_meta), dtype=np.float32)
+        if self.num_meta:
+            batch_X_meta = np.zeros((current_batch_size, self.num_meta), dtype=np.float32)
         if self.labeled:
             batch_y = np.zeros((current_batch_size, self.num_tfs), dtype=bool)
         for i, j in enumerate(index_array):
@@ -59,7 +60,8 @@ class DataIterator(Iterator):
             start = med - self.seqlen / 2
             stop = med + self.seqlen / 2
             batch_X_seq[i] = self.genome[chrom][start:stop]
-            batch_X_meta[i] = meta
+            if self.num_meta:
+                batch_X_meta[i] = meta
             for k, bigwig_file in enumerate(bigwig_files):
                 bigwig = pyBigWig.open(bigwig_file)
                 sample_bigwig = np.array(bigwig.values(chrom, start, stop))
@@ -73,7 +75,10 @@ class DataIterator(Iterator):
         batch_X_bigwig_rc = batch_X_bigwig[:, ::-1, self.bigwig_rc_order]
         batch_X_fwd = np.concatenate([batch_X_seq, batch_X_bigwig], axis=-1)
         batch_X_rev = np.concatenate([batch_X_seq_rc, batch_X_bigwig_rc], axis=-1)
-        batch_x = [batch_X_fwd, batch_X_rev, batch_X_meta]
+        if self.num_meta:
+            batch_x = [batch_X_fwd, batch_X_rev, batch_X_meta]
+        else:
+            batch_x = [batch_X_fwd, batch_X_rev]
         if self.labeled:
             return batch_x, batch_y
         return batch_x
