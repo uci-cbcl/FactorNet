@@ -336,9 +336,9 @@ def make_features_onePeak(chip_bed_list, nonnegative_regions_bed_list, bigwig_fi
 
 def get_onehot_chrom(chrom): 
     fasta = pyfasta.Fasta(genome_fasta_file)
-    chr_array = np.char.upper(np.array(fasta[chrom]))
+    chr_str = str(fasta[chrom]).upper()
     d = np.array(['A','C','G','T'])
-    y = chr_array[:, np.newaxis] == d
+    y = np.fromstring(chr_str, dtype='|S1')[:, np.newaxis] == d
     return y
 
 
@@ -601,50 +601,6 @@ def load_model(modeldir):
     return tfs, bigwig_names, model
 
 
-def load_testdata(tf, genome, test_chroms, input_dir):
-    chip_info_file = input_dir + '/chip.txt'
-    chip_info = np.loadtxt(chip_info_file, dtype=str)
-    if len(chip_info.shape) == 1:
-        chip_info = np.reshape(chip_info, (-1,len(chip_info)))
-    tfs = list(chip_info[:, 1])
-    if tf: #tf is specified, collect one ChIP file for evaluation
-        assert tf in tfs
-        tf_index = tfs.index(tf)
-        chip_bed_file = input_dir + '/' + chip_info[tf_index,0]
-        chip_bed = BedTool(chip_bed_file).sort()
-        positives_only = False
-        step = genome_window_size#genome_window_step
-    else: #tf is not specified, collect all input chip files and merge for visualization
-        _, _, chip_bed = get_chip_beds(input_dir)
-        positives_only = True
-        step = genome_window_size
-    _, _, genome_bed = get_genome_bed()
-    genome_bed_test = subset_chroms(test_chroms, genome_bed)
-    print 'Windowing test chromosome(s)'
-    genome_bed_test_windows = BedTool().window_maker(b=genome_bed_test, w=genome_window_size,
-                                                     s=step)
-    blacklist = make_blacklist()
-    print 'Removing windows overlapping blacklist regions'
-    genome_bed_test_windows = genome_bed_test_windows.intersect(blacklist, wa=True, v=True,
-                                                                sorted=True)
-    print 'Generating labels for test chromosome(s)'
-    y = intersect_count(chip_bed, genome_bed_test_windows.fn)
-    y = np.array(y, dtype=bool)
-    print 'Generating test data iterator'
-    bigwig_names, bigwig_files = load_bigwigs(input_dir)
-    if positives_only:
-        data_test = [(window.chrom, window.start, window.stop, bigwig_files)
-                     for y_sample, window in itertools.izip(y, genome_bed_test_windows)
-                     if y_sample]
-    else:
-        data_test = [(window.chrom, window.start, window.stop, bigwig_files)
-                     for window in genome_bed_test_windows]
-    from data_iter import DataIterator
-    bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
-    datagen_test = DataIterator(data_test, genome, 1000, L, bigwig_rc_order, shuffle=False)
-    return bigwig_names, datagen_test, y
-
-
 def load_beddata(tf, genome, bed_file, input_dir):
     bed = BedTool(bed_file)
     blacklist = make_blacklist()
@@ -654,8 +610,9 @@ def load_beddata(tf, genome, bed_file, input_dir):
     print 'Filtering away blacklisted windows'
     bed_filtered = bed.intersect(blacklist, wa=True, v=True, sorted=True)
     print 'Generating test data iterator'
-    bigwig_names, bigwig_files = load_bigwigs(input_dir)
-    data_bed = [(window.chrom, window.start, window.stop, bigwig_files)
+    bigwig_names, bigwig_files_list = load_bigwigs([input_dir])
+    bigwig_files = bigwig_files_list[0]
+    data_bed = [(window.chrom, window.start, window.stop, 0, bigwig_files, [])
                 for window in bed_filtered]
     from data_iter import DataIterator
     bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
