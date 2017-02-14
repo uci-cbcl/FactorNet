@@ -70,15 +70,19 @@ def make_argument_parser():
     parser.add_argument('--dense', '-d', type=int, required=False,
                         default=256,
                         help='Number of dense units in model (default: 256).')
+    parser.add_argument('--dropout', '-p', type=float, required=False,
+                        default=0.5,
+                        help='Dropout rate between the LSTM and dense layers (default: 0.5).')
     parser.add_argument('--seed', '-s', type=int, required=False,
                         default=420,
                         help='Random seed for consistency (default: 420).')
     parser.add_argument('--factor', '-f', type=str, required=False,
                         default=None,
                         help='The transcription factor to train. If not specified, multi-task training is used instead.')
-    parser.add_argument('--dropout', '-p', type=float, required=False,
-                        default=0.5,
-                        help='Dropout rate between the LSTM and dense layers (default: 0.5).')
+    parser.add_argument('--meta', '-m', action='store_true',
+                        help='Meta flag. If used, model will use metadata features.')
+    parser.add_argument('--gencode', '-g', action='store_true',
+                        help='GENCODE flag. If used, model will incorporate CpG island and gene annotation features.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-o', '--outputdir', type=str,
                        help='The output directory. Causes error if the directory already exists.')
@@ -104,17 +108,30 @@ def main():
     dropout_rate = args.dropout
     negatives = args.negatives
     assert negatives > 0
+    meta = args.meta
+    gencode = args.gencode
 
     num_motifs = args.kernels
     num_recurrent = args.recurrent
     num_dense = args.dense
+ 
+    features = ['bigwig']    
 
     if tf:
         print 'Single-task training:', tf
         singleTask = True
+        if meta:
+            print 'Including metadata features'
+            features.append('meta')
+        if gencode:
+            print 'Including genome annotations'
+            features.append('gencode')
     else:
         print 'Multi-task training'
         singleTask = False
+        #Cannot use any metadata features
+        assert not meta
+        assert not gencode
 
     if args.outputdir is None:
         clobber = True
@@ -153,19 +170,31 @@ def main():
     num_bigwigs = len(bigwig_names)
     if not singleTask:
         bigwig_files = bigwig_files_list[0]
+    if meta:
+        print 'loading metadata features'
+        meta_names, meta_list = utils.load_meta(input_dirs)
+    else:
+        meta_list = [[] for bigwig_files in bigwig_files_list]
+    
     print 'making features'
     if singleTask:
         datagen_train, datagen_valid, datagen_test = \
-            utils.make_features_onePeak(chip_bed_list,
+            utils.make_features_singleTask(chip_bed_list,
             nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
-            genome, epochs, negatives, valid_chroms, test_chroms)
+            meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms)
     else:
         datagen_train, datagen_valid, datagen_test = \
             utils.make_features_multiTask(positive_windows, y_positive,
             nonnegative_regions_bed, bigwig_files, bigwig_names,
             genome, epochs, valid_chroms, test_chroms)
     print 'building model'
-    model = utils.make_model(num_tfs, num_bigwigs, num_motifs, num_recurrent, num_dense, dropout_rate)
+    if meta:
+        num_meta = len(meta_names)
+        if gencode:
+            num_meta += 6
+        model = utils.make_meta_model(num_tfs, num_bigwigs, num_meta, num_motifs, num_recurrent, num_dense, dropout_rate)
+    else:
+        model = utils.make_model(num_tfs, num_bigwigs, num_motifs, num_recurrent, num_dense, dropout_rate)
 
     output_tf_file = open(output_dir + '/chip.txt', 'w')
     if singleTask:
@@ -174,14 +203,24 @@ def main():
         for tf in tfs:
             output_tf_file.write("%s\n" % tf)
     output_tf_file.close()
+    output_feature_file = open(output_dir + '/feature.txt', 'w')
+    for feature in features:
+        output_feature_file.write("%s\n" % feature)
+    output_feature_file.close()
     output_bw_file = open(output_dir + '/bigwig.txt', 'w')
     for bw in bigwig_names:
         output_bw_file.write("%s\n" % bw)
     output_bw_file.close()
+    if meta:
+        output_meta_file = open(output_dir + '/meta.txt', 'w')
+        for meta_name in meta_names:
+            output_meta_file.write("%s\n" % meta_name)
+        output_meta_file.close()
     model_json = model.to_json()
     output_json_file = open(output_dir + '/model.json', 'w')
     output_json_file.write(model_json)
     output_json_file.close()
+    import numpy as np
     train(datagen_train, datagen_valid, datagen_test, model, epochs, output_dir)
 
 

@@ -172,9 +172,10 @@ def data_to_bed(data):
     return BedTool(intervals)
 
 
-def extract_data_from_bed(args, shift, label):
+def extract_data_from_bed(args, shift, label, gencode):
     peaks = args[0]
     bigwig_files = args[1]
+    meta = args[2]
 
     data = []
 
@@ -189,7 +190,7 @@ def extract_data_from_bed(args, shift, label):
             shift_size = peak_stop - start - 75 - 1
         else:
             shift_size = 0
-        data.append((chrom, start, stop, shift_size, bigwig_files, [], label))
+        data.append((chrom, start, stop, shift_size, bigwig_files, meta, label))
 
     return data
 
@@ -218,17 +219,20 @@ def negative_shuffle_wrapper(args, include_bed, num_copies, noOverlapping):
     positive_windows = args[0]
     nonnegative_regions_bed = args[1]
     bigwig_files = args[2]
+    randomseed = args[3]
     if num_copies > 1:
         positive_windows = BedTool.cat(*(num_copies * [positive_windows]), postmerge=False)
     negative_windows = positive_windows.shuffle(g=genome_sizes_file,
                                                 incl=include_bed.fn,
                                                 excl=nonnegative_regions_bed.fn,
-                                                noOverlapping=noOverlapping)
+                                                noOverlapping=noOverlapping,
+                                                seed=randomseed)
     return negative_windows
 
 
-def make_features_onePeak(chip_bed_list, nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
-                  genome, epochs, negatives, valid_chroms, test_chroms):
+def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
+                             meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms):
+    num_cells = len(chip_bed_list)
     chroms, chroms_sizes, genome_bed = get_genome_bed()
     train_chroms = chroms
     for chrom in valid_chroms + test_chroms:
@@ -245,66 +249,69 @@ def make_features_onePeak(chip_bed_list, nonnegative_regions_bed_list, bigwig_fi
     #Train
     print 'Extracting data from positive training BEDs'
     positive_data_train_list = parmap.map(extract_data_from_bed,
-                                          zip(chip_bed_train_list, bigwig_files_list),
-                                          True, positive_label)
+                                          zip(chip_bed_train_list, bigwig_files_list, meta_list),
+                                          True, positive_label, gencode)
     positive_data_train = list(itertools.chain(*positive_data_train_list))
 
     #Validation
     print 'Extracting data from positive validation BEDs'
     positive_data_valid_list = parmap.map(extract_data_from_bed,
-                                          zip(chip_bed_valid_list, bigwig_files_list),
-                                          False, positive_label)
+                                          zip(chip_bed_valid_list, bigwig_files_list, meta_list),
+                                          False, positive_label, gencode)
     positive_data_valid = list(itertools.chain(*positive_data_valid_list))
 
     #Testing
     print 'Extracting data from positive testing BEDs'
     positive_data_test_list = parmap.map(extract_data_from_bed,
-                                         zip(chip_bed_test_list, bigwig_files_list),
-                                         False, positive_label)
+                                         zip(chip_bed_test_list, bigwig_files_list, meta_list),
+                                         False, positive_label, gencode)
     positive_data_test = list(itertools.chain(*positive_data_test_list))
 
     print 'Shuffling positive training windows in negative regions'
     train_noOverlap = True
+    train_randomseeds = np.random.randint(-214783648, 2147483647, num_cells)
     positive_windows_train_list = parmap.map(data_to_bed, positive_data_train_list)
     negative_windows_train_list = parmap.map(negative_shuffle_wrapper,
                                              zip(positive_windows_train_list, nonnegative_regions_bed_list,
-                                                 bigwig_files_list),
+                                                 bigwig_files_list, train_randomseeds),
                                              genome_bed_train, negatives*epochs, train_noOverlap)
 
     print 'Shuffling positive validation windows in negative regions'
+    valid_randomseeds = np.random.randint(-214783648, 2147483647, num_cells)
     positive_windows_valid_list = parmap.map(data_to_bed, positive_data_valid_list)
     negative_windows_valid_list = parmap.map(negative_shuffle_wrapper,
                                              zip(positive_windows_valid_list, nonnegative_regions_bed_list,
-                                                 bigwig_files_list),
+                                                 bigwig_files_list, valid_randomseeds),
                                              genome_bed_valid, negatives, True)
 
     print 'Shuffling positive testing windows in negative regions'
+    test_randomseeds = np.random.randint(-214783648, 2147483647, num_cells)
     positive_windows_test_list = parmap.map(data_to_bed, positive_data_test_list)
     negative_windows_test_list = parmap.map(negative_shuffle_wrapper,
                                             zip(positive_windows_test_list, nonnegative_regions_bed_list,
-                                                bigwig_files_list),
+                                                bigwig_files_list, test_randomseeds),
                                             genome_bed_test, negatives, True)
 
     negative_label = [False]
     #Train
     print 'Extracting data from negative training BEDs'
     negative_data_train_list = parmap.map(extract_data_from_bed,
-                                          zip(negative_windows_train_list, bigwig_files_list),
-                                          False, negative_label)
+                                          zip(negative_windows_train_list, bigwig_files_list, meta_list),
+                                          False, negative_label, gencode)
     negative_data_train = list(itertools.chain(*negative_data_train_list))
 
     #Validation
     print 'Extracting data from negative validation BEDs'
     negative_data_valid_list = parmap.map(extract_data_from_bed,
-                                          zip(negative_windows_valid_list, bigwig_files_list),
-                                          False, negative_label)
+                                          zip(negative_windows_valid_list, bigwig_files_list, meta_list),
+                                          False, negative_label, gencode)
     negative_data_valid = list(itertools.chain(*negative_data_valid_list))
 
     #Testing
     print 'Extracting data from negative testing BEDs'
     negative_data_test_list = parmap.map(extract_data_from_bed,
-                                         zip(negative_windows_test_list, bigwig_files_list),
-                                         False, negative_label)
+                                         zip(negative_windows_test_list, bigwig_files_list, meta_list),
+                                         False, negative_label, gencode)
     negative_data_test = list(itertools.chain(*negative_data_test_list))
 
     data_valid = negative_data_valid + positive_data_valid
@@ -470,6 +477,28 @@ def load_chip_singleTask(input_dirs, tf):
     return chip_bed_list, nonnegative_regions_bed_list
 
 
+def load_meta(input_dirs):
+    meta_names = None
+    meta_list = []
+    for input_dir in input_dirs:
+        input_meta_info_file = input_dir + '/meta.txt'
+        if not os.path.isfile(input_meta_info_file):
+            input_meta_names = []
+            input_meta_list = []
+        else:
+            input_meta_info = np.loadtxt(input_meta_info_file, dtype=str)
+            if len(input_meta_info.shape) == 1:
+                input_meta_info = np.reshape(input_meta_info, (-1,2))
+            input_meta_names = list(input_meta_info[:, 1])
+            input_meta = input_meta_info[:,0].astype('float32')
+        if meta_names is None:
+            meta_names = input_meta_names
+        else:
+            assert meta_names == input_meta_names
+        meta_list.append(input_meta)
+    return meta_names, meta_list
+
+
 def load_bigwigs(input_dirs):
     bigwig_names = None
     bigwig_files_list = []
@@ -534,7 +563,7 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_r
     return model
 
 
-def make_meta_model(num_bws, num_meta, num_motifs, num_recurrent, num_dense, dropout_rate):
+def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_dense, dropout_rate):
     from keras import backend as K
     from keras.models import Model
     from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
@@ -563,7 +592,7 @@ def make_meta_model(num_bws, num_meta, num_motifs, num_recurrent, num_dense, dro
     dense2_layer = Dense(num_dense, activation='relu')
     forward_dense2 = dense2_layer(forward_dense)
     reverse_dense2 = dense2_layer(reverse_dense)
-    sigmoid_layer =  Dense(1, activation='sigmoid')
+    sigmoid_layer =  Dense(num_tfs, activation='sigmoid')
     forward_output = sigmoid_layer(forward_dense2)
     reverse_output = sigmoid_layer(reverse_dense2)
     output = merge([forward_output, reverse_output], mode='ave')
@@ -593,15 +622,22 @@ def load_model(modeldir):
             bigwig_names = [str(bigwig_names)]
         else:
             bigwig_names = list(bigwig_names)
+    features_file = modeldir + '/feature.txt'
+    assert os.path.isfile(features_file)
+    features = np.loadtxt(features_file, dtype=str)
+    if len(features.shape) == 0:
+        features = [str(features)]
+    else:
+        features = list(features)
     from keras.models import model_from_json
     model_json_file = open(modeldir + '/model.json', 'r')
     model_json = model_json_file.read()
     model = model_from_json(model_json)
     model.load_weights(modeldir + '/best_model.hdf5')
-    return tfs, bigwig_names, model
+    return tfs, bigwig_names, features, model
 
 
-def load_beddata(tf, genome, bed_file, input_dir):
+def load_beddata(tf, genome, bed_file, use_meta, use_gencode, input_dir):
     bed = BedTool(bed_file)
     blacklist = make_blacklist()
     print 'Determining which windows are valid'
@@ -612,9 +648,16 @@ def load_beddata(tf, genome, bed_file, input_dir):
     print 'Generating test data iterator'
     bigwig_names, bigwig_files_list = load_bigwigs([input_dir])
     bigwig_files = bigwig_files_list[0]
-    data_bed = [(window.chrom, window.start, window.stop, 0, bigwig_files, [])
+    if use_meta:
+        meta_names, meta_list = load_meta([input_dir])
+        meta = meta_list[0]
+    else:
+        meta = []
+        meta_names = None
+    shift = 0
+    data_bed = [(window.chrom, window.start, window.stop, shift, bigwig_files, meta)
                 for window in bed_filtered]
     from data_iter import DataIterator
     bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
     datagen_bed = DataIterator(data_bed, genome, 1000, L, bigwig_rc_order, shuffle=False)
-    return bigwig_names, datagen_bed, nonblacklist_bools
+    return bigwig_names, meta_names, datagen_bed, nonblacklist_bools
