@@ -49,6 +49,9 @@ def make_argument_parser():
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--inputdirs', '-i', type=str, required=True, nargs='+',
                         help='Folders containing data.')    
+    parser.add_argument('--validinputdir', '-vi', type=str, required=False, 
+                        default=None,
+                        help='Folder of validation cell type data (optional).')
     parser.add_argument('--validchroms', '-v', type=str, required=False, nargs='+',
                         default=['chr11'],
                         help='Chromosome(s) to set aside for validation.')
@@ -63,13 +66,13 @@ def make_argument_parser():
                         help='Number of negative samples per each positive sample (default: 1).')
     parser.add_argument('--kernels', '-k', type=int, required=False,
                         default=32,
-                        help='Number of kernels in model (default: 128).')
+                        help='Number of kernels in model (default: 32).')
     parser.add_argument('--recurrent', '-r', type=int, required=False,
                         default=32,
-                        help='Number of LSTM units in model (default: 128).')
+                        help='Number of LSTM units in model (default: 32).')
     parser.add_argument('--dense', '-d', type=int, required=False,
                         default=64,
-                        help='Number of dense units in model (default: 256).')
+                        help='Number of dense units in model (default: 64).')
     parser.add_argument('--dropout', '-p', type=float, required=False,
                         default=0.5,
                         help='Dropout rate between the LSTM and dense layers (default: 0.5).')

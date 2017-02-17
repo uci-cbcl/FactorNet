@@ -55,15 +55,26 @@ All training data are in the data folder. Training data are organized into one f
 ### Arguments
 
 The following are arguments for train.py, the training script:
-* `-i input_dir`. Folders containing cell-type specific data. Examples and a more in-depth explanation can be found in the data folder (required).
+* `-i inputdirs`. Folder(s) containing cell-type specific data for training. Examples and a more in-depth explanation can be found in the data folder (required).
+* `-vi validinputdir`. A folder containing cell-type specific data for validation (Optional. If not specified, validation chromosomes in the training cell lines will be used instead).
+* `-v validchroms Chromosome(s) to set aside for validation or early stopping (default: chr11).
+* `-t testchroms. Chromosome(s) to set aside for testing. Test sequences are never touched throughout training (default: chr1, chr8, chr21).
+* `-n negatives` Number of negative samples per each positive sample (default: 1). For example, if this value is set to 5 and you are training on a ChIP-seq file with 10,000 peaks, then each epoch will contain 10,000 positive samples and 50,000 randomly drawn negative samples without replacement.
+* `-k kernels` Number of kernels or motifs in the model (default: 32).
+* `-r recurrent` Number of LSTM cells in the model (default: 32).
+* `-d dense` Number of dense units in the penultimate layer (default: 64).
+* `-p dropout` Dropout rate between the LSTM and dense layers (defaulter: 0.5).
+* `-s seed` Random seed for reproducibility (default: 420).
+* `-f factor` The transcription factor to train. If not specified, multi-task training is used instead.
+* `-m meta` Meta flag. If used, model will use metadata features.
 
 ### Examples
-There are five different type of models used for the ENCODE-DREAM competition. These models differ in their training method and types of features they incorporate. Training is primarily done with the train and predict scripts. Currently, the code is a little messy, so there is almost a train and predict script for each of the five different types of models. I plan on cleaning up the code into just one train and one predict script. I've also included a sample BED file in the resources folder (sample_ladder_regions.blacklistfiltered.bed.gz) to make predictions on. The README in the models folder describe what the program outputs once training completes.
+There are five different type of models used for the ENCODE-DREAM competition. These models differ in their training method and types of features they incorporate. I included a sample BED file in the resources folder (sample_ladder_regions.blacklistfiltered.bed.gz) to make predictions on. The README in the models folder describe what the program outputs once training completes.
 
 The following are descriptions and code snppets for each model.
 
 * multiTask
-This model trains with multiple TF binding targets in a joint multi-task fashion. Each epoch, it draws . Bins labeled as ambiguous are treated as negative bins. This model can only train on one cell line.
+This model trains with multiple TF binding targets in a joint multi-task fashion. Each epoch, it randomly draws a number of negative bins (with replacement) equal to the number of positive bins. Bins labeled as ambiguous are treated as negative bins. This model can only train on one cell line.
 ```
 $ python train.py -i data/HepG2 -oc multiTask_Unique35_DGF_HepG2
 $ # If you want to remove the 35 bp Uniqueness track as features, remove that line from the bigwig.txt file in data/HepG2.
