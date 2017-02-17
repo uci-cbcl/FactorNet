@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Script for evaluating TF binding with trained model(s).
+Script for predicting TF binding with a trained model.
 
 Use `predict.py -h` to see an auto-generated description of advanced options.
 """
@@ -63,7 +63,7 @@ def main():
     use_meta = 'meta' in features
     use_gencode = 'gencode' in features
     print 'Loading test data'
-    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(tf, genome, bed_file, use_meta, use_gencode, input_dir)
+    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(genome, bed_file, use_meta, use_gencode, input_dir)
     assert bigwig_names == model_bigwig_names
     if use_meta:
         model_meta_file = model_dir + '/meta.txt'

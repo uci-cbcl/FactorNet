@@ -97,7 +97,6 @@ def make_features_multiTask(positive_windows, y_positive, nonnegative_regions_be
 
     positive_windows_train = BedTool(positive_windows_train)
     positive_windows_valid = BedTool(positive_windows_valid)
-    positive_windows_test = BedTool(positive_windows_test)
 
     print 'Getting negative training examples'
     negative_windows_train = BedTool.cat(*(epochs*[positive_windows]), postmerge=False)
@@ -112,12 +111,6 @@ def make_features_multiTask(positive_windows, y_positive, nonnegative_regions_be
                                                             excl=nonnegative_regions_bed.fn,
                                                             noOverlapping=False,
                                                             seed=np.random.randint(-214783648, 2147483647))
-    print 'Getting negative testing examples'
-    negative_windows_test = positive_windows_test.shuffle(g=genome_sizes_file,
-                                                          incl=genome_bed_test.fn,
-                                                          excl=nonnegative_regions_bed.fn,
-                                                          noOverlapping=False,
-                                                          seed=np.random.randint(-214783648, 2147483647))
 
     # Train
     print 'Extracting data from negative training BEDs'
@@ -129,16 +122,10 @@ def make_features_multiTask(positive_windows, y_positive, nonnegative_regions_be
     print 'Extracting data from negative validation BEDs'
     negative_data_valid = [(window.chrom, window.start, window.stop, shift_size, bigwig_files, [], negative_targets)
                            for window in negative_windows_valid]
-
-    # Testing
-    print 'Extracting data from negative testing BEDs'
-    negative_data_test = [(window.chrom, window.start, window.stop, shift_size, bigwig_files, [], negative_targets)
-                          for window in negative_windows_test]
     
     num_positive_train_windows = len(positive_data_train)
     
     data_valid = negative_data_valid + positive_data_valid
-    data_test = negative_data_test + positive_data_test
 
     print 'Shuffling training data'
     data_train = []
@@ -154,12 +141,10 @@ def make_features_multiTask(positive_windows, y_positive, nonnegative_regions_be
     bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
     datagen_train = DataIterator(data_train, genome, batch_size, L, bigwig_rc_order)
     datagen_valid = DataIterator(data_valid, genome, batch_size, L, bigwig_rc_order)
-    datagen_test = DataIterator(data_test, genome, batch_size, L, bigwig_rc_order)
 
     print len(datagen_train), 'training samples'
     print len(datagen_valid), 'validation samples'
-    print len(datagen_test), 'testing samples'
-    return datagen_train, datagen_valid, datagen_test
+    return datagen_train, datagen_valid
 
 
 def data_to_bed(data):
@@ -177,20 +162,50 @@ def extract_data_from_bed(args, shift, label, gencode):
     bigwig_files = args[1]
     meta = args[2]
 
-    data = []
+    data = []    
 
-    for peak in peaks:
-        chrom = peak.chrom
-        peak_start = peak.start
-        peak_stop = peak.stop
-        peak_mid = (peak_start + peak_stop)/2
-        start = peak_mid - genome_window_size/2
-        stop = peak_mid + genome_window_size/2
-        if shift:
-            shift_size = peak_stop - start - 75 - 1
-        else:
-            shift_size = 0
-        data.append((chrom, start, stop, shift_size, bigwig_files, meta, label))
+    if gencode:
+        cpg_bed = BedTool('resources/cpgisland.bed.gz')
+        cds_bed = BedTool('resources/wgEncodeGencodeBasicV19.cds.merged.bed.gz')
+        intron_bed = BedTool('resources/wgEncodeGencodeBasicV19.intron.merged.bed.gz')
+        promoter_bed = BedTool('resources/wgEncodeGencodeBasicV19.promoter.merged.bed.gz')
+        utr5_bed = BedTool('resources/wgEncodeGencodeBasicV19.utr5.merged.bed.gz')
+        utr3_bed = BedTool('resources/wgEncodeGencodeBasicV19.utr3.merged.bed.gz')
+
+        peaks_cpg_bedgraph = peaks.intersect(cpg_bed, wa=True, c=True)
+        peaks_cds_bedgraph = peaks.intersect(cds_bed, wa=True, c=True)
+        peaks_intron_bedgraph = peaks.intersect(intron_bed, wa=True, c=True)
+        peaks_promoter_bedgraph = peaks.intersect(promoter_bed, wa=True, c=True)
+        peaks_utr5_bedgraph = peaks.intersect(utr5_bed, wa=True, c=True)
+        peaks_utr3_bedgraph = peaks.intersect(utr3_bed, wa=True, c=True)
+
+        for cpg, cds, intron, promoter, utr5, utr3 in itertools.izip(peaks_cpg_bedgraph,peaks_cds_bedgraph,peaks_intron_bedgraph,peaks_promoter_bedgraph,peaks_utr5_bedgraph,peaks_utr3_bedgraph):
+            chrom = cpg.chrom
+            peak_start = cpg.start
+            peak_stop = cpg.stop
+            peak_mid = (peak_start + peak_stop)/2
+            start = peak_mid - genome_window_size/2
+            stop = peak_mid + genome_window_size/2
+            if shift:
+                shift_size = peak_stop - start - 75 - 1
+            else:
+                shift_size = 0
+            gencode = np.array([cpg.count, cds.count, intron.count, promoter.count, utr5.count, utr3.count], dtype=bool)
+            meta_gencode = np.append(meta, gencode)
+            data.append((chrom, start, stop, shift_size, bigwig_files, meta_gencode, label))
+    else:
+        for peak in peaks:
+            chrom = peak.chrom
+            peak_start = peak.start
+            peak_stop = peak.stop
+            peak_mid = (peak_start + peak_stop)/2
+            start = peak_mid - genome_window_size/2
+            stop = peak_mid + genome_window_size/2
+            if shift:
+                shift_size = peak_stop - start - 75 - 1
+            else:
+                shift_size = 0
+            data.append((chrom, start, stop, shift_size, bigwig_files, meta, label))
 
     return data
 
@@ -260,13 +275,6 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
                                           False, positive_label, gencode)
     positive_data_valid = list(itertools.chain(*positive_data_valid_list))
 
-    #Testing
-    print 'Extracting data from positive testing BEDs'
-    positive_data_test_list = parmap.map(extract_data_from_bed,
-                                         zip(chip_bed_test_list, bigwig_files_list, meta_list),
-                                         False, positive_label, gencode)
-    positive_data_test = list(itertools.chain(*positive_data_test_list))
-
     print 'Shuffling positive training windows in negative regions'
     train_noOverlap = True
     train_randomseeds = np.random.randint(-214783648, 2147483647, num_cells)
@@ -284,14 +292,6 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
                                                  bigwig_files_list, valid_randomseeds),
                                              genome_bed_valid, negatives, True)
 
-    print 'Shuffling positive testing windows in negative regions'
-    test_randomseeds = np.random.randint(-214783648, 2147483647, num_cells)
-    positive_windows_test_list = parmap.map(data_to_bed, positive_data_test_list)
-    negative_windows_test_list = parmap.map(negative_shuffle_wrapper,
-                                            zip(positive_windows_test_list, nonnegative_regions_bed_list,
-                                                bigwig_files_list, test_randomseeds),
-                                            genome_bed_test, negatives, True)
-
     negative_label = [False]
     #Train
     print 'Extracting data from negative training BEDs'
@@ -307,15 +307,7 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
                                           False, negative_label, gencode)
     negative_data_valid = list(itertools.chain(*negative_data_valid_list))
 
-    #Testing
-    print 'Extracting data from negative testing BEDs'
-    negative_data_test_list = parmap.map(extract_data_from_bed,
-                                         zip(negative_windows_test_list, bigwig_files_list, meta_list),
-                                         False, negative_label, gencode)
-    negative_data_test = list(itertools.chain(*negative_data_test_list))
-
     data_valid = negative_data_valid + positive_data_valid
-    data_test = negative_data_test + positive_data_test
 
     print 'Shuffling training data'
     num_negatives_per_epoch = negatives*len(positive_data_train)
@@ -333,12 +325,10 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
     bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
     datagen_train = DataIterator(data_train, genome, batch_size, L, bigwig_rc_order)
     datagen_valid = DataIterator(data_valid, genome, batch_size, L, bigwig_rc_order, shuffle=True)
-    datagen_test = DataIterator(data_test, genome, batch_size, L, bigwig_rc_order)
 
     print len(datagen_train), 'training samples'
     print len(datagen_valid), 'validation samples'
-    print len(datagen_test), 'testing samples'
-    return datagen_train, datagen_valid, datagen_test
+    return datagen_train, datagen_valid
 
 
 def get_onehot_chrom(chrom): 
@@ -637,14 +627,22 @@ def load_model(modeldir):
     return tfs, bigwig_names, features, model
 
 
-def load_beddata(tf, genome, bed_file, use_meta, use_gencode, input_dir):
+def load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, chrom=None):
     bed = BedTool(bed_file)
+    print 'Sorting BED file'
+    bed = bed.sort()
     blacklist = make_blacklist()
     print 'Determining which windows are valid'
     bed_intersect_blacklist_count = bed.intersect(blacklist, wa=True, c=True, sorted=True)
-    nonblacklist_bools = np.array([i.count==0 for i in bed_intersect_blacklist_count])
+    if chrom:
+        nonblacklist_bools = np.array([i.chrom==chrom and i.count==0 for i in bed_intersect_blacklist_count])
+    else:
+        nonblacklist_bools = np.array([i.count==0 for i in bed_intersect_blacklist_count])
     print 'Filtering away blacklisted windows'
     bed_filtered = bed.intersect(blacklist, wa=True, v=True, sorted=True)
+    if chrom:
+        print 'Filtering away windows not in chromosome:', chrom
+        bed_filtered = subset_chroms([chrom], bed_filtered)
     print 'Generating test data iterator'
     bigwig_names, bigwig_files_list = load_bigwigs([input_dir])
     bigwig_files = bigwig_files_list[0]
@@ -654,9 +652,30 @@ def load_beddata(tf, genome, bed_file, use_meta, use_gencode, input_dir):
     else:
         meta = []
         meta_names = None
+    
     shift = 0
-    data_bed = [(window.chrom, window.start, window.stop, shift, bigwig_files, meta)
-                for window in bed_filtered]
+    
+    if use_gencode:
+        cpg_bed = BedTool('resources/cpgisland.bed.gz')
+        cds_bed = BedTool('resources/wgEncodeGencodeBasicV19.cds.merged.bed.gz')
+        intron_bed = BedTool('resources/wgEncodeGencodeBasicV19.intron.merged.bed.gz')
+        promoter_bed = BedTool('resources/wgEncodeGencodeBasicV19.promoter.merged.bed.gz')
+        utr5_bed = BedTool('resources/wgEncodeGencodeBasicV19.utr5.merged.bed.gz')
+        utr3_bed = BedTool('resources/wgEncodeGencodeBasicV19.utr3.merged.bed.gz')
+
+        peaks_cpg_bedgraph = bed_filtered.intersect(cpg_bed, wa=True, c=True)
+        peaks_cds_bedgraph = bed_filtered.intersect(cds_bed, wa=True, c=True)
+        peaks_intron_bedgraph = bed_filtered.intersect(intron_bed, wa=True, c=True)
+        peaks_promoter_bedgraph = bed_filtered.intersect(promoter_bed, wa=True, c=True)
+        peaks_utr5_bedgraph = bed_filtered.intersect(utr5_bed, wa=True, c=True)
+        peaks_utr3_bedgraph = bed_filtered.intersect(utr3_bed, wa=True, c=True)
+
+        data_bed = [(window.chrom, window.start, window.stop, 0, bigwig_files, np.append(meta, np.array([cpg.count, cds.count, intron.count, promoter.count, utr5.count, utr3.count], dtype=bool)))
+                    for window, cpg, cds, intron, promoter, utr5, utr3 in 
+                    itertools.izip(bed_filtered, peaks_cpg_bedgraph,peaks_cds_bedgraph,peaks_intron_bedgraph,peaks_promoter_bedgraph,peaks_utr5_bedgraph,peaks_utr3_bedgraph)]
+    else:
+        data_bed = [(window.chrom, window.start, window.stop, shift, bigwig_files, meta)
+                    for window in bed_filtered]
     from data_iter import DataIterator
     bigwig_rc_order = get_bigwig_rc_order(bigwig_names)
     datagen_bed = DataIterator(data_bed, genome, 1000, L, bigwig_rc_order, shuffle=False)

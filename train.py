@@ -14,7 +14,7 @@ import argparse
 import pickle
 
 
-def train(datagen_train, datagen_valid, datagen_test, model, epochs, output_dir):
+def train(datagen_train, datagen_valid, model, epochs, output_dir):
     from keras.callbacks import ModelCheckpoint, EarlyStopping
     print 'Running at most', str(epochs), 'epochs'
 
@@ -62,13 +62,13 @@ def make_argument_parser():
                         default=1,
                         help='Number of negative samples per each positive sample (default: 1).')
     parser.add_argument('--kernels', '-k', type=int, required=False,
-                        default=128,
+                        default=32,
                         help='Number of kernels in model (default: 128).')
     parser.add_argument('--recurrent', '-r', type=int, required=False,
-                        default=128,
+                        default=32,
                         help='Number of LSTM units in model (default: 128).')
     parser.add_argument('--dense', '-d', type=int, required=False,
-                        default=256,
+                        default=64,
                         help='Number of dense units in model (default: 256).')
     parser.add_argument('--dropout', '-p', type=float, required=False,
                         default=0.5,
@@ -152,9 +152,9 @@ def main():
                 print >> sys.stderr, ('output directory (%s) already exists '
                                       'so it will be clobbered') % output_dir
 
-    print 'loading genome'
+    print 'Loading genome'
     genome = utils.load_genome()
-    print 'loading ChIP labels'
+    print 'Loading ChIP labels'
     if singleTask:
         chip_bed_list, nonnegative_regions_bed_list = \
             utils.load_chip_singleTask(input_dirs, tf)
@@ -165,31 +165,33 @@ def main():
         tfs, positive_windows, y_positive, nonnegative_regions_bed = \
             utils.load_chip_multiTask(input_dir)
         num_tfs = len(tfs)
-    print 'loading bigWig data'
+    print 'Loading bigWig data'
     bigwig_names, bigwig_files_list = utils.load_bigwigs(input_dirs)
     num_bigwigs = len(bigwig_names)
     if not singleTask:
         bigwig_files = bigwig_files_list[0]
     if meta:
-        print 'loading metadata features'
+        print 'Loading metadata features'
         meta_names, meta_list = utils.load_meta(input_dirs)
     else:
         meta_list = [[] for bigwig_files in bigwig_files_list]
     
-    print 'making features'
+    print 'Making features'
     if singleTask:
-        datagen_train, datagen_valid, datagen_test = \
+        datagen_train, datagen_valid = \
             utils.make_features_singleTask(chip_bed_list,
             nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
             meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms)
     else:
-        datagen_train, datagen_valid, datagen_test = \
+        datagen_train, datagen_valid = \
             utils.make_features_multiTask(positive_windows, y_positive,
             nonnegative_regions_bed, bigwig_files, bigwig_names,
             genome, epochs, valid_chroms, test_chroms)
-    print 'building model'
-    if meta:
-        num_meta = len(meta_names)
+    print 'Building model'
+    if meta or gencode:
+        num_meta = 0
+        if meta:
+            num_meta = len(meta_names)
         if gencode:
             num_meta += 6
         model = utils.make_meta_model(num_tfs, num_bigwigs, num_meta, num_motifs, num_recurrent, num_dense, dropout_rate)
@@ -221,7 +223,7 @@ def main():
     output_json_file.write(model_json)
     output_json_file.close()
     import numpy as np
-    train(datagen_train, datagen_valid, datagen_test, model, epochs, output_dir)
+    train(datagen_train, datagen_valid, model, epochs, output_dir)
 
 
 if __name__ == '__main__':
