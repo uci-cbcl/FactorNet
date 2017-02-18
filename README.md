@@ -1,6 +1,6 @@
 # README for FactorNet
 
-README still under construction (1/30/17). As you can tell, there are a lot of similarly named files. Many lines of code were embarassingly copied in multiple scripts instead of simply shared. I will try to condense everything into 2 or 3 script files soon, but everything I used for the ENCODE-DREAM competition is here.
+FactorNet is a neural network model for predicting TF binding. It was one of the top performing models in the ENCODE-DREAM competition and is still being improved.
 
 # Citing FactorNet
 
