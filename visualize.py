@@ -162,7 +162,7 @@ def make_argument_parser():
                         help='BED file containing intervals to generate predictions from. Typically a ChIP or DNase peak file.')
     parser.add_argument('--chrom', '-c', type=str, required=False,
                         default='chr11',
-                        help='Chromosome to use for visualization. Only sequences on this chromosome will be used.')
+                        help='Chromosome to use for visualization. Only sequences on this chromosome will be used (default: chr11).')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-o', '--outputdir', type=str,
                        help='The output directory. Causes error if the directory already exists.')

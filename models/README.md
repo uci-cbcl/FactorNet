@@ -15,4 +15,5 @@ Out[3]: ['acc', 'loss', 'val_acc', 'val_loss']
 ```
 
 * model.json. JSON file of the model architecture. Keras reads this in when making predictions.
-* meta.txt. Text file containing the names of the cell-type specific metadata features. Only present in meta and metaGENCODE models.	
+* meta.txt. Text file containing the names of the cell-type specific metadata features. Only present in meta and metaGENCODE models. 
+* feature.txt. Text file describing which features were used to make the model. Helps the other scripts (e.g. predict.py) know what kind of model this is.	

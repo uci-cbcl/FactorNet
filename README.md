@@ -57,16 +57,20 @@ All training data are in the data folder. Training data are organized into one f
 The following are arguments for train.py, the training script:
 * `-i inputdirs`. Folder(s) containing cell-type specific data for training. Examples and a more in-depth explanation can be found in the data folder (required).
 * `-vi validinputdir`. A folder containing cell-type specific data for validation (Optional. If not specified, validation chromosomes in the training cell lines will be used instead).
-* `-v validchroms Chromosome(s) to set aside for validation or early stopping (default: chr11).
-* `-t testchroms. Chromosome(s) to set aside for testing. Test sequences are never touched throughout training (default: chr1, chr8, chr21).
-* `-n negatives` Number of negative samples per each positive sample (default: 1). For example, if this value is set to 5 and you are training on a ChIP-seq file with 10,000 peaks, then each epoch will contain 10,000 positive samples and 50,000 randomly drawn negative samples without replacement.
-* `-k kernels` Number of kernels or motifs in the model (default: 32).
-* `-r recurrent` Number of LSTM cells in the model (default: 32).
-* `-d dense` Number of dense units in the penultimate layer (default: 64).
-* `-p dropout` Dropout rate between the LSTM and dense layers (defaulter: 0.5).
-* `-s seed` Random seed for reproducibility (default: 420).
-* `-f factor` The transcription factor to train. If not specified, multi-task training is used instead.
-* `-m meta` Meta flag. If used, model will use metadata features.
+* `-v validchroms`. Chromosome(s) to set aside for validation or early stopping (default: chr11).
+* `-t testchroms`. Chromosome(s) to set aside for testing. Test sequences are never touched throughout training (default: chr1, chr8, chr21).
+* `-e epochs`. Number of epochs for training (default: 20)
+* `-n negatives`. Number of negative samples per each positive sample (default: 1). For example, if this value is set to 5 and you are training on a ChIP-seq file with 10,000 peaks, then each epoch will contain 10,000 positive samples and 50,000 randomly drawn negative samples without replacement. Not used for multi-task training.
+* `-k kernels`. Number of kernels or motifs in the model (default: 32).
+* `-r recurrent`. Number of LSTM cells in the model (default: 32).
+* `-d dense`. Number of dense units in the penultimate layer (default: 64).
+* `-p dropout`. Dropout rate between the LSTM and dense layers (defaulter: 0.5).
+* `-s seed`. Random seed for reproducibility (default: 420).
+* `-f factor`. The transcription factor to train. If not specified, multi-task training is used instead.
+* `-m meta`. Meta flag. If used, model will use metadata features.
+* `-g gencode`. GENCODE flag. If used, model will incorporate CpG island and gene annotation features.
+* `-o outputdir`. Output directory. Will not be overwritten if already present (required, unless `-oc` used).
+* `-oc outputdirc`. Output directory. Will be overwritten if already present (required, unless `-o` used).
 
 ### Examples
 There are five different type of models used for the ENCODE-DREAM competition. These models differ in their training method and types of features they incorporate. I included a sample BED file in the resources folder (sample_ladder_regions.blacklistfiltered.bed.gz) to make predictions on. The README in the models folder describe what the program outputs once training completes.
@@ -76,43 +80,69 @@ The following are descriptions and code snppets for each model.
 * multiTask
 This model trains with multiple TF binding targets in a joint multi-task fashion. Each epoch, it randomly draws a number of negative bins (with replacement) equal to the number of positive bins. Bins labeled as ambiguous are treated as negative bins. This model can only train on one cell line.
 ```
-$ python train.py -i data/HepG2 -oc multiTask_Unique35_DGF_HepG2
+$ python train.py -i data/HepG2 -k 128 -r 128 -d 256 -oc multiTask_Unique35_DGF_HepG2
 $ # If you want to remove the 35 bp Uniqueness track as features, remove that line from the bigwig.txt file in data/HepG2.
-$ python predict.py -f FOXA2 -i data/liver -m multiTask_Unique35_DGF_HepG2 -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o FOXA2_liver.bed.gz
-$ # The predict script can only predict one TF at a time, which must be specified with the -f option.
+$ # Of all the ENCODE-DREAM training cell lines, HepG2 has the most TFs associated with it (19), necessitating a bigger model.
 ```
 
 * onePeak
-The onePeak model, and all subsequent models, are trained on a single TF in a single-task fashion. Unlike the multiTask model, it can leverage data from multiple reference cell lines and ignores ambiguous peaks. The next three models are more or less variations of this model, but modified to incorporate non-sequential metadata features such as gene expression and gene annotations.
+The onePeak model, and all subsequent models, are trained on a single TF in a single-task fashion. You can initiate single-task training with the `-f` command. Unlike the multiTask model, single-task models can leverage data from multiple reference cell lines and ignores ambiguous peaks. The next three models are more or less variations of this model, but modified to incorporate non-sequential metadata features such as gene expression and gene annotations.
 ```
-$ python train_onepeak.py -f MAX -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX -k 128 -r 64 -d 128 -n 3 -e 50
-$ python predict.py -f MAX -i data/liver -m onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o MAX_liver.bed.gz
+$ python train.py -f MAX -k 128 -r 64 -d 128 -n 3 -e 5 -i data/A549 data/GM12878 data/H1-hESC data/HCT116 data/HeLa-S3 data/HepG2 data/K562 -oc onePeak_Unique35_DGF_3n_50e_128k_64r_128d_MAX
 ```
 
 * meta
-This model incorporates cell-type specific features such as gene expression. These features are specified in the meta.txt file in each data folder. 
+This model incorporates cell-type specific features such as gene expression. These features are specified in the meta.txt file in each data folder. Use the `-m` option if you want to use this model
 ```
-$ python train_meta.py -f GABPA -i data/GM12878 data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 -oc meta_Unique35_DGF_5n_GABPA -n 5
-$ python predict_meta.py -f GABPA -i data/liver -m meta_Unique35_DGF_5n_GABPA -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o GABPA_liver.bed.gz
+$ python train.py -f GABPA -n 5 -m -i data/GM12878 data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 -oc meta_Unique35_DGF_5n_GABPA 
 ```
 
 * GENCODE
-This model is very similar to the meta model. Like the meta model, it incorporates non-sequential metadata features, except at the bin level instead of at the cell type level. Bins are annotated with GENCODE (promoters, introns, 5' UTR, 3' UTR, and CDS) and unmasked CpG islands. Promoters are defined as genomic regions up to 300 bps upstream and 100 bps downstream of a TSS.
+This model is very similar to the meta model. Like the meta model, it incorporates non-sequential metadata features, except at the bin level instead of at the cell type level. Bins are annotated with GENCODE (promoters, introns, 5' UTR, 3' UTR, and CDS) and unmasked CpG islands. Promoters are defined as genomic regions up to 300 bps upstream and 100 bps downstream of a TSS. Use the `-g` option if you want to use this model.
 
 ```
-$ python train_gencode.py -f REST -i data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 data/Panc1 -oc GENCODE_Unique35_DGF_64k_128d_REST -k 64 -d 128
-$ python predict_gencode.py -f REST -i data/liver -m GENCODE_Unique35_DGF_64k_128d_REST -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o REST_liver.bed.gz
+$ python train.py -f REST -k 64 -d 128 -g -i data/H1-hESC data/HeLa-S3 data/HepG2 data/MCF-7 data/Panc1 -oc GENCODE_Unique35_DGF_64k_128d_REST
 ```
 
 * metaGENCODE
-This model includes the metadata features from both the meta and GENCODE models.
+This model includes the metadata features from both the meta and GENCODE models. Combing the `-g` and `-m` options to use this model
 ```
-$ python train_metagencode.py -f CTCF -i data/A549 data/H1-hESC data/HeLa-S3 data/HepG2 data/IMR-90 data/K562 data/MCF-7 -oc metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -k 128 -r 64 -d 128
-$ python predict_metagencode.py -f CTCF -i data/PC-3 -m metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o CTCF_PC-3.bed.gz
+$ python train.py -f CTCF -k 128 -r 64 -d 128 -m -g -i data/A549 data/H1-hESC data/HeLa-S3 data/HepG2 data/IMR-90 data/K562 data/MCF-7 -oc metaGENCODE_Unique35_DGF_129k_64r_128d_CTCF
 ```
 
 ## Predicting (predict.py)
 
+### Arguments
+
+The following are arguments for predict.py, the prediction script:
+* `-i inputdir`. A folder containing cell-type specific data to perform predictions on (required).
+* `-m modeldir`. A older containing trained model generated by train.py (required).
+* `-f factor`. The transcription factor to evaluate (required).
+* `-b bed`. BED file containing intervals to predict on (required).
+* `-o outputfile`. The output filename of the gzipped bedgraph file (required).
+
+### Examples
+Using the prediction script is fairly straightforward. From the model folder, it will recognize what kind of model it is. I included a sample BED file in the resources folder (sample_ladder_regions.blacklistfiltered.bed.gz) to make predictions on. The following command line is a pretty typical use of the script:
+
+```
+$ python predict.py -f CTCF -i data/PC-3 -m models/CTCF/metaGENCODE_RNAseq_Unique35_DGF -b resources/sample_ladder_regions.blacklistfiltered.bed.gz -o CTCF_PC-3.bed.gz
+```
 ## Visualizing (visualize.py)
 
+### Arguments
 
+The following are arguments for visualize.py, the visualization script:
+* `-i inputdir`. A folder containing cell-type specific data to perform predictions on (required).
+* `-m modeldir`. A older containing trained model generated by train.py (required).
+* `-f factor`. The transcription factor to evaluate (required).
+* `-b bed`. BED file containing intervals to predict on (required).
+* `-c chrom`. Chromosome to use for visualization. Only sequences on this chromosome will be used (default: chr11).
+* `-o outputfile`. The output filename of the gzipped bedgraph file (required).
+
+### Examples
+
+The visualization script applies heuristics to convert the kernels into sequence motifs. It also helps with plotting the mean bigWig signals of the kernels by outputting these values to a numpy .npy file. It will work on the first layer (a convolutional layer) and the second layer (a time distributed dense layer). 
+
+```
+$ python visualize.py -i data/HepG2 -b data/HepG2/ChIPseq.HepG2.REST.conservative.train.narrowPeak.gz -m models/REST/GENCODE_Unique35_DGF_2 -oc GENCODE_Unique35_DGF_2_visualizations
+```

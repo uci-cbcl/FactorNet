@@ -25,7 +25,7 @@ def make_argument_parser():
     sys.argv
     """
     parser = argparse.ArgumentParser(
-        description="Visualize results of a trained model.",
+        description="Generate predictions from a trained model.",
         epilog='\n'.join(__doc__.strip().split('\n')[1:]).strip(),
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--inputdir', '-i', type=str, required=True,

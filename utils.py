@@ -538,6 +538,7 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_r
         Dropout(dropout_rate),
         Flatten(),
         Dense(num_dense, activation='relu'),
+        Dropout(dropout_rate),
         Dense(num_tfs, activation='sigmoid')
     ]
     forward_output = get_output(forward_input, hidden_layers)     
@@ -582,9 +583,12 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
     dense2_layer = Dense(num_dense, activation='relu')
     forward_dense2 = dense2_layer(forward_dense)
     reverse_dense2 = dense2_layer(reverse_dense)
+    dropout2_layer = Dropout(dropout_rate)
+    forward_dropout2 = dropout2_layer(forward_dense2)
+    reverse_dropout2 = dropout2_layer(reverse_dense2)
     sigmoid_layer =  Dense(num_tfs, activation='sigmoid')
-    forward_output = sigmoid_layer(forward_dense2)
-    reverse_output = sigmoid_layer(reverse_dense2)
+    forward_output = sigmoid_layer(forward_dropout2)
+    reverse_output = sigmoid_layer(reverse_dropout2)
     output = merge([forward_output, reverse_output], mode='ave')
     model = Model(input=[forward_input, reverse_input, meta_input], output=output)
 
