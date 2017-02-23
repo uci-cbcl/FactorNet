@@ -5,6 +5,7 @@ Script for training model.
 Use `train.py -h` to see an auto-generated description of advanced options.
 """
 import utils
+import numpy as np
 
 # Standard library imports
 import sys
@@ -14,13 +15,13 @@ import argparse
 import pickle
 
 
-def train(datagen_train, datagen_valid, model, epochs, output_dir):
+def train(datagen_train, datagen_valid, model, epochs, patience, output_dir):
     from keras.callbacks import ModelCheckpoint, EarlyStopping
     print 'Running at most', str(epochs), 'epochs'
 
     checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
                                    verbose=1, save_best_only=True)
-    earlystopper = EarlyStopping(monitor='val_loss', patience=epochs, verbose=1)
+    earlystopper = EarlyStopping(monitor='val_loss', patience=patience, verbose=1)
 
     train_samples_per_epoch = len(datagen_train)/epochs/utils.batch_size*utils.batch_size
     history = model.fit_generator(datagen_train, samples_per_epoch=train_samples_per_epoch,
@@ -49,9 +50,9 @@ def make_argument_parser():
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--inputdirs', '-i', type=str, required=True, nargs='+',
                         help='Folders containing data.')    
-    parser.add_argument('--validinputdir', '-vi', type=str, required=False, 
+    parser.add_argument('--validinputdirs', '-vi', type=str, required=False, nargs='+',
                         default=None,
-                        help='Folder of validation cell type data (optional).')
+                        help='Folder(s) of validation cell type data (optional).')
     parser.add_argument('--validchroms', '-v', type=str, required=False, nargs='+',
                         default=['chr11'],
                         help='Chromosome(s) to set aside for validation.')
@@ -61,6 +62,9 @@ def make_argument_parser():
     parser.add_argument('--epochs', '-e', type=int, required=False,
                         default=20,
                         help='Epochs to train (default: 20).')
+    parser.add_argument('--patience', '-ep', type=int, required=False,
+                        default=20,
+                        help='Number of epochs with no improvement after which training will be stopped (default: 20).')
     parser.add_argument('--negatives', '-n', type=int, required=False,
                         default=1,
                         help='Number of negative samples per each positive sample (default: 1).')
@@ -86,6 +90,8 @@ def make_argument_parser():
                         help='Meta flag. If used, model will use metadata features.')
     parser.add_argument('--gencode', '-g', action='store_true',
                         help='GENCODE flag. If used, model will incorporate CpG island and gene annotation features.')
+    parser.add_argument('--motif', '-mo', action='store_true',
+                        help='Motif flag. If used, will inject canonical motif and its RC as model model weights (if available).')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-o', '--outputdir', type=str,
                        help='The output directory. Causes error if the directory already exists.')
@@ -104,8 +110,10 @@ def main():
     input_dirs = args.inputdirs
     tf = args.factor
     valid_chroms = args.validchroms
+    valid_input_dirs = args.validinputdirs
     test_chroms = args.testchroms
     epochs = args.epochs
+    patience = args.patience
     seed = args.seed
     utils.set_seed(seed)
     dropout_rate = args.dropout
@@ -113,6 +121,7 @@ def main():
     assert negatives > 0
     meta = args.meta
     gencode = args.gencode
+    motif = args.motif
 
     num_motifs = args.kernels
     num_recurrent = args.recurrent
@@ -157,13 +166,19 @@ def main():
 
     print 'Loading genome'
     genome = utils.load_genome()
+    if valid_input_dirs:
+        print 'You specified at least one validation input directory'
+        assert singleTask # This option only works for single-task training
     print 'Loading ChIP labels'
     if singleTask:
         chip_bed_list, nonnegative_regions_bed_list = \
             utils.load_chip_singleTask(input_dirs, tf)
+        if valid_input_dirs:
+            valid_chip_bed_list, valid_nonnegative_regions_bed_list = \
+                utils.load_chip_singleTask(valid_input_dirs, tf)
         num_tfs = 1
     else:
-        assert len(input_dirs) == 1
+        assert len(input_dirs) == 1 # multi-task training only supports one cell line
         input_dir = input_dirs[0]
         tfs, positive_windows, y_positive, nonnegative_regions_bed = \
             utils.load_chip_multiTask(input_dir)
@@ -171,20 +186,35 @@ def main():
     print 'Loading bigWig data'
     bigwig_names, bigwig_files_list = utils.load_bigwigs(input_dirs)
     num_bigwigs = len(bigwig_names)
+    if valid_input_dirs:
+        valid_bigwig_names, valid_bigwig_files_list = utils.load_bigwigs(valid_input_dirs)
+        assert valid_bigwig_names == bigwig_names
     if not singleTask:
         bigwig_files = bigwig_files_list[0]
     if meta:
         print 'Loading metadata features'
         meta_names, meta_list = utils.load_meta(input_dirs)
-    else:
+        if valid_input_dirs:
+            valid_meta_names, valid_meta_list = utils.load_load(valid_input_dirs)
+            assert valid_meta_names == meta_names
+    else:# meta option was not selected, pass empty metadata features to the functions
         meta_list = [[] for bigwig_files in bigwig_files_list]
+        if valid_input_dirs:
+            valid_meta_list = [[] for bigwig_files in valid_bigwig_files_list]
     
     print 'Making features'
     if singleTask:
+        if not valid_input_dirs: #validation directories not used, must pass placeholder values
+            valid_chip_bed_list = None
+            valid_nonnegative_regions_bed_list = None
+            valid_bigwig_files_list = None
+            valid_meta_list = None 
         datagen_train, datagen_valid = \
             utils.make_features_singleTask(chip_bed_list,
             nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
-            meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms)
+            meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms, 
+            valid_chip_bed_list, valid_nonnegative_regions_bed_list, 
+            valid_bigwig_files_list, valid_meta_list)
     else:
         datagen_train, datagen_valid = \
             utils.make_features_multiTask(positive_windows, y_positive,
@@ -201,6 +231,16 @@ def main():
     else:
         model = utils.make_model(num_tfs, num_bigwigs, num_motifs, num_recurrent, num_dense, dropout_rate)
 
+    if motif:
+        assert singleTask # This option only works with single-task training
+        motifs_db = utils.load_motif_db('resources/HOCOMOCOv9.meme')
+        if tf in motifs_db:
+            print 'Injecting canonical motif'
+            pwm = motifs_db[tf]
+            pwm += 0.0001
+            pwm = pwm / pwm.sum(axis=1)[:, np.newaxis]
+            pwm = np.log2(pwm/0.25)
+            utils.inject_pwm(model, pwm)
     output_tf_file = open(output_dir + '/chip.txt', 'w')
     if singleTask:
         output_tf_file.write("%s\n" % tf)
@@ -225,8 +265,7 @@ def main():
     output_json_file = open(output_dir + '/model.json', 'w')
     output_json_file.write(model_json)
     output_json_file.close()
-    import numpy as np
-    train(datagen_train, datagen_valid, model, epochs, output_dir)
+    train(datagen_train, datagen_valid, model, epochs, patience, output_dir)
 
 
 if __name__ == '__main__':

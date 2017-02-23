@@ -69,7 +69,7 @@ def output_results(bigwig_names, datagen_bed, model, output_dir):
         if nsites[m] == 0:
             continue
         f.write('MOTIF M%i O%i\n' % (m, m))
-        f.write("letter-probability matrix: alength= 4 w= 26 nsites= %i E= 1337.0e-6\n" % nsites[m])
+        f.write("letter-probability matrix: alength= 4 w= %i nsites= %i E= 1337.0e-6\n" % (w, nsites[m]))
         for j in xrange(w):
             f.write("%f %f %f %f\n" % tuple(1.0 * motifs[m, j, 0:4] / np.sum(motifs[m, j, 0:4])))
         f.write('\n')
@@ -129,7 +129,7 @@ def output_results(bigwig_names, datagen_bed, model, output_dir):
         if nsites[m] == 0:
             continue
         f.write('MOTIF M%i O%i\n' % (m, m))
-        f.write("letter-probability matrix: alength= 4 w= 26 nsites= %i E= 1337.0e-6\n" % nsites[m])
+        f.write("letter-probability matrix: alength= 4 w= %i nsites= %i E= 1337.0e-6\n" % (w, nsites[m]))
         for j in xrange(w):
             f.write("%f %f %f %f\n" % tuple(1.0 * motifs[m, j, 0:4] / np.sum(motifs[m, j, 0:4])))
         f.write('\n')

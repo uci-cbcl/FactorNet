@@ -246,7 +246,9 @@ def negative_shuffle_wrapper(args, include_bed, num_copies, noOverlapping):
 
 
 def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig_files_list, bigwig_names,
-                             meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms):
+                             meta_list, gencode, genome, epochs, negatives, valid_chroms, test_chroms, 
+                             valid_chip_bed_list, valid_nonnegative_regions_bed_list,
+                             valid_bigwig_files_list, valid_meta_list):
     num_cells = len(chip_bed_list)
     chroms, chroms_sizes, genome_bed = get_genome_bed()
     train_chroms = chroms
@@ -260,6 +262,14 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
     chip_bed_split_list = parmap.map(valid_test_split_wrapper, chip_bed_list, valid_chroms, test_chroms)
     chip_bed_train_list, chip_bed_valid_list, chip_bed_test_list = zip(*chip_bed_split_list)
 
+    if valid_chip_bed_list: # the user specified a validation directory, must adjust validation data
+        valid_chip_bed_split_list = parmap.map(valid_test_split_wrapper, valid_chip_bed_list, valid_chroms, test_chroms)
+        _, chip_bed_valid_list, _ = zip(*valid_chip_bed_split_list)
+    else:
+        valid_nonnegative_regions_bed_list = nonnegative_regions_bed_list
+        valid_bigwig_files_list = bigwig_files_list
+        valid_meta_list = meta_list
+
     positive_label = [True]
     #Train
     print 'Extracting data from positive training BEDs'
@@ -271,7 +281,7 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
     #Validation
     print 'Extracting data from positive validation BEDs'
     positive_data_valid_list = parmap.map(extract_data_from_bed,
-                                          zip(chip_bed_valid_list, bigwig_files_list, meta_list),
+                                          zip(chip_bed_valid_list, valid_bigwig_files_list, valid_meta_list),
                                           False, positive_label, gencode)
     positive_data_valid = list(itertools.chain(*positive_data_valid_list))
 
@@ -303,7 +313,7 @@ def make_features_singleTask(chip_bed_list, nonnegative_regions_bed_list, bigwig
     #Validation
     print 'Extracting data from negative validation BEDs'
     negative_data_valid_list = parmap.map(extract_data_from_bed,
-                                          zip(negative_windows_valid_list, bigwig_files_list, meta_list),
+                                          zip(negative_windows_valid_list, valid_bigwig_files_list, valid_meta_list),
                                           False, negative_label, gencode)
     negative_data_valid = list(itertools.chain(*negative_data_valid_list))
 
@@ -629,6 +639,60 @@ def load_model(modeldir):
     model = model_from_json(model_json)
     model.load_weights(modeldir + '/best_model.hdf5')
     return tfs, bigwig_names, features, model
+
+
+def load_motif_db(meme_filename):
+    f = open(meme_filename, 'r')
+    lines = f.readlines()    
+    f.close()
+    num_lines = len(lines)
+    i = 0
+    motifs_dict = {}
+    while i < num_lines:
+        line = lines[i]
+        if 'MOTIF' in line:
+            motif_name = line.split()[-1].strip().upper()
+            while 'letter-probability matrix' not in line:
+                i += 1
+                line = lines[i]
+            motif_info = lines[i]
+            motif_info = motif_info.split()
+            w_index = motif_info.index('w=') + 1
+            w = int(motif_info[w_index])
+            motif = np.zeros((w,4))
+            i += 1
+            line = lines[i]
+            while len(line.strip()) == 0:
+                i += 1
+                line = lines[i]
+            for j in xrange(w):
+                motif[j,:] = np.array(lines[i].split(), dtype=float)
+                i += 1
+            motifs_dict[motif_name] = motif
+        i += 1
+    return motifs_dict
+
+
+def inject_pwm(model, pwm):
+    layer_names = [l.name for l in model.layers]
+    conv_layer_index = layer_names.index('convolution1d_1')
+    conv_layer = model.layers[conv_layer_index]
+    w = conv_layer.filter_length
+    pwm_length = len(pwm)
+    pwm_start = w/2 - pwm_length/2
+    pwm_stop = pwm_start + pwm_length
+    pwm_r = pwm[::-1, ::-1]
+
+    conv_weights = conv_layer.get_weights()
+
+    conv_weights[0][:, :, :, 0] = 0
+    conv_weights[0][pwm_start:pwm_stop, 0, 0:4, 0] = pwm[::-1]
+    conv_weights[1][0] = 0
+    conv_weights[0][:, :, :, 1] = 0
+    conv_weights[0][pwm_start:pwm_stop, 0, 0:4, 1] = pwm_r[::-1]
+    conv_weights[1][1] = 0
+
+    conv_layer.set_weights(conv_weights)
 
 
 def load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, chrom=None):
