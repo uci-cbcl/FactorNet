@@ -15,8 +15,15 @@ import argparse
 import pickle
 
 
-def train(datagen_train, datagen_valid, model, epochs, patience, output_dir):
+def train(datagen_train, datagen_valid, model, epochs, patience, learningrate, output_dir):
     from keras.callbacks import ModelCheckpoint, EarlyStopping
+    from keras.optimizers import Adam
+
+    print 'Compiling model'
+    model.compile(Adam(lr=learningrate, 'binary_crossentropy', metrics=['accuracy'])
+
+    model.summary()
+
     print 'Running at most', str(epochs), 'epochs'
 
     checkpointer = ModelCheckpoint(filepath=output_dir + '/best_model.hdf5',
@@ -60,20 +67,29 @@ def make_argument_parser():
                         default=['chr1', 'chr8', 'chr21'],
                         help='Chromosome(s) to set aside for testing.')
     parser.add_argument('--epochs', '-e', type=int, required=False,
-                        default=20,
-                        help='Epochs to train (default: 20).')
+                        default=100,
+                        help='Epochs to train (default: 100).')
     parser.add_argument('--patience', '-ep', type=int, required=False,
                         default=20,
                         help='Number of epochs with no improvement after which training will be stopped (default: 20).')
+    parser.add_argument('--learningrate', '-lr', type=float, required=False,
+                        default=0.001,
+                        help='Learning rate (default: 0.001).')
     parser.add_argument('--negatives', '-n', type=int, required=False,
                         default=1,
                         help='Number of negative samples per each positive sample (default: 1).')
+    parser.add_argument('--seqlen', '-L', type=int, required=False,
+                        default=1002,
+                        help='Length of sequence input (default: 1002).')
+    parser.add_argument('--motifwidth', '-w', type=int, required=False,
+                        default=34,
+                        help='Width of the convolutional kernels (default: 34).')
     parser.add_argument('--kernels', '-k', type=int, required=False,
                         default=32,
                         help='Number of kernels in model (default: 32).')
     parser.add_argument('--recurrent', '-r', type=int, required=False,
                         default=32,
-                        help='Number of LSTM units in model (default: 32).')
+                        help='Number of LSTM units in model (default: 32). If set to 0, the bi-directional recurrent layer is replaced with a global max-pooling layer.')
     parser.add_argument('--dense', '-d', type=int, required=False,
                         default=64,
                         help='Number of dense units in model (default: 64).')
@@ -114,9 +130,15 @@ def main():
     test_chroms = args.testchroms
     epochs = args.epochs
     patience = args.patience
+    learningrate = args.learningrate
     seed = args.seed
     utils.set_seed(seed)
     dropout_rate = args.dropout
+    L = args.seqlen
+    w = args.motifwidth
+    utils.L = L
+    utils.w = w
+    utils.w2 = w/2
     negatives = args.negatives
     assert negatives > 0
     meta = args.meta
@@ -221,6 +243,8 @@ def main():
             nonnegative_regions_bed, bigwig_files, bigwig_names,
             genome, epochs, valid_chroms, test_chroms)
     print 'Building model'
+    if num_recurrent == 0:
+        print 'You specified 0 LSTM units. Making non-recurrent model'
     if meta or gencode:
         num_meta = 0
         if meta:
@@ -237,7 +261,7 @@ def main():
         if tf in motifs_db:
             print 'Injecting canonical motif'
             pwm = motifs_db[tf]
-            pwm += 0.0001
+            pwm += 0.01
             pwm = pwm / pwm.sum(axis=1)[:, np.newaxis]
             pwm = np.log2(pwm/0.25)
             utils.inject_pwm(model, pwm)
@@ -265,7 +289,7 @@ def main():
     output_json_file = open(output_dir + '/model.json', 'w')
     output_json_file.write(model_json)
     output_json_file.close()
-    train(datagen_train, datagen_valid, model, epochs, patience, output_dir)
+    train(datagen_train, datagen_valid, model, epochs, patience, learningrate, output_dir)
 
 
 if __name__ == '__main__':

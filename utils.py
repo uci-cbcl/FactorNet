@@ -7,10 +7,6 @@ import parmap
 import os
 import itertools
 
-L = 1002
-w = 34
-w2 = w/2
-
 batch_size = 100
 
 genome_sizes_file = 'resources/hg19.autoX.chrom.sizes'
@@ -20,7 +16,6 @@ blacklist_file = 'resources/blacklist.bed.gz'
 genome_window_size = 200
 genome_window_step = 50
 shift_size = 20
-
 
 def set_seed(seed):
     np.random.seed(seed)
@@ -533,34 +528,44 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_r
     from keras.models import Model
     from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
     from keras.layers.convolutional import Convolution1D, MaxPooling1D
+    from keras.layers.pooling import GlobalMaxPooling1D
     from keras.layers.recurrent import LSTM
     from keras.layers.wrappers import Bidirectional, TimeDistributed
     forward_input = Input(shape=(L, 4 + num_bws,))
     reverse_input = Input(shape=(L, 4 + num_bws,))
-    hidden_layers = [
-        Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
-                      filter_length=w, border_mode='valid', activation='relu',
-                      subsample_length=1),
-        Dropout(0.1),
-        TimeDistributed(Dense(num_motifs, activation='relu')),
-        MaxPooling1D(pool_length=w2, stride=w2),
-        Bidirectional(LSTM(num_recurrent, dropout_W=0.1, dropout_U=0.1, return_sequences=True)),
-        Dropout(dropout_rate),
-        Flatten(),
-        Dense(num_dense, activation='relu'),
-        Dropout(dropout_rate),
-        Dense(num_tfs, activation='sigmoid')
-    ]
+    if num_recurrent == 0:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            GlobalMaxPooling1D(),
+            Dropout(dropout_rate),
+            Dense(num_dense, activation='relu'),
+            Dropout(dropout_rate),
+            Dense(num_tfs, activation='sigmoid')
+        ]
+    else:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            MaxPooling1D(pool_length=w2, stride=w2),
+            Bidirectional(LSTM(num_recurrent, dropout_W=0.1, dropout_U=0.1, return_sequences=True)),
+            Dropout(dropout_rate),
+            Flatten(),
+            Dense(num_dense, activation='relu'),
+            Dropout(dropout_rate),
+            Dense(num_tfs, activation='sigmoid')
+        ]
     forward_output = get_output(forward_input, hidden_layers)     
     reverse_output = get_output(reverse_input, hidden_layers)
     output = merge([forward_output, reverse_output], mode='ave')
     model = Model(input=[forward_input, reverse_input], output=output)
 
-    print 'Compiling model'
-    model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
-
-    model.summary()
-    
     return model
 
 
@@ -569,23 +574,36 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
     from keras.models import Model
     from keras.layers import Dense, Dropout, Activation, Flatten, Layer, merge, Input
     from keras.layers.convolutional import Convolution1D, MaxPooling1D
+    from keras.layers.pooling import GlobalMaxPooling1D
     from keras.layers.recurrent import LSTM
     from keras.layers.wrappers import Bidirectional, TimeDistributed
     forward_input = Input(shape=(L, 4 + num_bws,))
     reverse_input = Input(shape=(L, 4 + num_bws,))
     meta_input = Input(shape=(num_meta,))
-    hidden_layers = [
-        Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
-                      filter_length=w, border_mode='valid', activation='relu',
-                      subsample_length=1),
-        Dropout(0.1),
-        TimeDistributed(Dense(num_motifs, activation='relu')),
-        MaxPooling1D(pool_length=w2, stride=w2),
-        Bidirectional(LSTM(num_recurrent, dropout_W=0.1, dropout_U=0.1, return_sequences=True)),
-        Dropout(dropout_rate),
-        Flatten(),
-        Dense(num_dense, activation='relu'),
-    ]
+    if num_recurrent == 0:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            GlobalMaxPooling1D(),
+            Dropout(dropout_rate),
+            Dense(num_dense, activation='relu'),
+        ]
+    else:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            MaxPooling1D(pool_length=w2, stride=w2),
+            Bidirectional(LSTM(num_recurrent, dropout_W=0.1, dropout_U=0.1, return_sequences=True)),
+            Dropout(dropout_rate),
+            Flatten(),
+            Dense(num_dense, activation='relu'),
+        ]
     forward_dense = get_output(forward_input, hidden_layers)     
     reverse_dense = get_output(reverse_input, hidden_layers)
     forward_dense = merge([forward_dense, meta_input], mode='concat')
@@ -593,7 +611,7 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
     dense2_layer = Dense(num_dense, activation='relu')
     forward_dense2 = dense2_layer(forward_dense)
     reverse_dense2 = dense2_layer(reverse_dense)
-    dropout2_layer = Dropout(dropout_rate)
+    dropout2_layer = Dropout(0.1)#dropout_rate)
     forward_dropout2 = dropout2_layer(forward_dense2)
     reverse_dropout2 = dropout2_layer(reverse_dense2)
     sigmoid_layer =  Dense(num_tfs, activation='sigmoid')
@@ -602,11 +620,6 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
     output = merge([forward_output, reverse_output], mode='ave')
     model = Model(input=[forward_input, reverse_input, meta_input], output=output)
 
-    print 'Compiling model'
-    model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
-
-    model.summary()
-    
     return model
 
 

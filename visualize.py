@@ -206,6 +206,8 @@ def main():
     genome = utils.load_genome()
     print 'Loading model'
     model_tfs, model_bigwig_names, features, model = utils.load_model(model_dir)
+    L = model.input_shape[0][1]
+    utils.L = L
     use_meta = 'meta' in features
     use_gencode = 'gencode' in features
     print 'Loading BED data'
