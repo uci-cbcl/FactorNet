@@ -20,7 +20,7 @@ def train(datagen_train, datagen_valid, model, epochs, patience, learningrate, o
     from keras.optimizers import Adam
 
     print 'Compiling model'
-    model.compile(Adam(lr=learningrate, 'binary_crossentropy', metrics=['accuracy'])
+    model.compile(Adam(lr=learningrate), 'binary_crossentropy', metrics=['accuracy'])
 
     model.summary()
 
