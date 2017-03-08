@@ -36,12 +36,6 @@ def make_argument_parser():
                         help='The transcription factor to evaluate.')
     parser.add_argument('--bed', '-b', type=str, required=True,
                         help='BED file containing intervals to predict on.')
-    parser.add_argument('--seqlen', '-L', type=int, required=False,
-                        default=1002,
-                        help='Length of sequence input (default: 1002).')
-    parser.add_argument('--motifwidth', '-w', type=int, required=False,
-                        default=34,
-                        help='Width of the convolutional kernels (default: 34).')
     parser.add_argument('--outputfile', '-o', type=str, required=True,
                        help='The output filename.')
     return parser
@@ -58,17 +52,14 @@ def main():
     model_dir = args.modeldir
     tf = args.factor
     bed_file = args.bed
-    L = args.seqlen
-    w = args.motifwidth
-    utils.L = L
-    utils.w = w
-    utils.w2 = w/2
     output_file = args.outputfile
 
     print 'Loading genome'
     genome = utils.load_genome()
     print 'Loading model'
     model_tfs, model_bigwig_names, features, model = utils.load_model(model_dir)
+    L = model.input_shape[0][1]
+    utils.L = L
     assert tf in model_tfs
     assert 'bigwig' in features
     use_meta = 'meta' in features
