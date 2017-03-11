@@ -56,7 +56,7 @@ All training data are in the data folder. Training data are organized into one f
 
 The following are arguments for train.py, the training script:
 * `-i inputdirs`. Folder(s) containing cell-type specific data for training. Examples and a more in-depth explanation can be found in the data folder (required).
-* `-vi validinputdir`. A folder containing cell-type specific data for validation (Optional. If not specified, validation chromosomes in the training cell lines will be used instead).
+* `-vi validinputdirs`. Folder(s) containing cell-type specific data for validation (Optional. If not specified, validation chromosomes in the training cell line(s) will be used instead).
 * `-v validchroms`. Chromosome(s) to set aside for validation or early stopping (default: chr11).
 * `-t testchroms`. Chromosome(s) to set aside for testing. Test sequences are never touched throughout training (default: chr1, chr8, chr21).
 * `-e epochs`. Number of epochs for training (default: 20)
