@@ -59,8 +59,12 @@ The following are arguments for train.py, the training script:
 * `-vi validinputdirs`. Folder(s) containing cell-type specific data for validation (Optional. If not specified, validation chromosomes in the training cell line(s) will be used instead).
 * `-v validchroms`. Chromosome(s) to set aside for validation or early stopping (default: chr11).
 * `-t testchroms`. Chromosome(s) to set aside for testing. Test sequences are never touched throughout training (default: chr1, chr8, chr21).
-* `-e epochs`. Number of epochs for training (default: 20)
+* `-e epochs`. Number of epochs for training (default: 100)
+* `-ep patience`. Number of epochs with no improvement after which training will be stopped (default: 20).
+* `-lr learningrate`. Learning rate for Adam optimizer (default: 0.001).
 * `-n negatives`. Number of negative samples per each positive sample (default: 1). For example, if this value is set to 5 and you are training on a ChIP-seq file with 10,000 peaks, then each epoch will contain 10,000 positive samples and 50,000 randomly drawn negative samples without replacement. Not used for multi-task training.
+* `-L seqlen`. Length of sequence input in bps (default: 1000).
+* `-w motifwidth`. Width of the convolutional kernels in bps (default: 26).
 * `-k kernels`. Number of kernels or motifs in the model (default: 32).
 * `-r recurrent`. Number of LSTM cells in the model (default: 32).
 * `-d dense`. Number of dense units in the penultimate layer (default: 64).
@@ -69,6 +73,7 @@ The following are arguments for train.py, the training script:
 * `-f factor`. The transcription factor to train. If not specified, multi-task training is used instead.
 * `-m meta`. Meta flag. If used, model will use metadata features.
 * `-g gencode`. GENCODE flag. If used, model will incorporate CpG island and gene annotation features.
+* `-mo motif`. Canonical motif flag. If used, model will initialize first two kernels to PWM of canonical motif (forward and reverse complement).
 * `-o outputdir`. Output directory. Will not be overwritten if already present (required, unless `-oc` used).
 * `-oc outputdirc`. Output directory. Will be overwritten if already present (required, unless `-o` used).
 

@@ -62,10 +62,10 @@ def make_argument_parser():
                         help='Folder(s) of validation cell type data (optional).')
     parser.add_argument('--validchroms', '-v', type=str, required=False, nargs='+',
                         default=['chr11'],
-                        help='Chromosome(s) to set aside for validation.')
+                        help='Chromosome(s) to set aside for validation (default: chr11).')
     parser.add_argument('--testchroms', '-t', type=str, required=False, nargs='+',
                         default=['chr1', 'chr8', 'chr21'],
-                        help='Chromosome(s) to set aside for testing.')
+                        help='Chromosome(s) to set aside for testing (default: chr1, chr8, chr21).')
     parser.add_argument('--epochs', '-e', type=int, required=False,
                         default=100,
                         help='Epochs to train (default: 100).')
@@ -79,11 +79,11 @@ def make_argument_parser():
                         default=1,
                         help='Number of negative samples per each positive sample (default: 1).')
     parser.add_argument('--seqlen', '-L', type=int, required=False,
-                        default=1002,
-                        help='Length of sequence input (default: 1002).')
+                        default=1000,
+                        help='Length of sequence input (default: 1000).')
     parser.add_argument('--motifwidth', '-w', type=int, required=False,
-                        default=34,
-                        help='Width of the convolutional kernels (default: 34).')
+                        default=26,
+                        help='Width of the convolutional kernels (default: 26).')
     parser.add_argument('--kernels', '-k', type=int, required=False,
                         default=32,
                         help='Number of kernels in model (default: 32).')
@@ -91,8 +91,8 @@ def make_argument_parser():
                         default=32,
                         help='Number of LSTM units in model (default: 32). If set to 0, the bi-directional recurrent layer is replaced with a global max-pooling layer.')
     parser.add_argument('--dense', '-d', type=int, required=False,
-                        default=64,
-                        help='Number of dense units in model (default: 64).')
+                        default=128,
+                        help='Number of dense units in model (default: 128).')
     parser.add_argument('--dropout', '-p', type=float, required=False,
                         default=0.5,
                         help='Dropout rate between the LSTM and dense layers (default: 0.5).')
@@ -261,7 +261,7 @@ def main():
         if tf in motifs_db:
             print 'Injecting canonical motif'
             pwm = motifs_db[tf]
-            pwm += 0.01
+            pwm += 0.001
             pwm = pwm / pwm.sum(axis=1)[:, np.newaxis]
             pwm = np.log2(pwm/0.25)
             utils.inject_pwm(model, pwm)
