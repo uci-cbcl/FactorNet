@@ -711,19 +711,19 @@ def inject_pwm(model, pwm):
     conv_layer.set_weights(conv_weights)
 
 
-def load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, chrom=None):
+def load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, sorted, chrom=None):
     bed = BedTool(bed_file)
     print 'Sorting BED file'
     bed = bed.sort()
     blacklist = make_blacklist()
     print 'Determining which windows are valid'
-    bed_intersect_blacklist_count = bed.intersect(blacklist, wa=True, c=True, sorted=True)
+    bed_intersect_blacklist_count = bed.intersect(blacklist, wa=True, c=True, sorted)
     if chrom:
         nonblacklist_bools = np.array([i.chrom==chrom and i.count==0 for i in bed_intersect_blacklist_count])
     else:
         nonblacklist_bools = np.array([i.count==0 for i in bed_intersect_blacklist_count])
     print 'Filtering away blacklisted windows'
-    bed_filtered = bed.intersect(blacklist, wa=True, v=True, sorted=True)
+    bed_filtered = bed.intersect(blacklist, wa=True, v=True, sorted)
     if chrom:
         print 'Filtering away windows not in chromosome:', chrom
         bed_filtered = subset_chroms([chrom], bed_filtered)

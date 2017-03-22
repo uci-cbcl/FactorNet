@@ -211,7 +211,8 @@ def main():
     use_meta = 'meta' in features
     use_gencode = 'gencode' in features
     print 'Loading BED data'
-    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, chrom)
+    sorted = False
+    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, sorted, chrom)
     assert bigwig_names == model_bigwig_names
     if use_meta:
         model_meta_file = model_dir + '/meta.txt'

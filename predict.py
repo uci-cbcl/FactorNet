@@ -35,7 +35,7 @@ def make_argument_parser():
     parser.add_argument('--factor', '-f', type=str, required=True,
                         help='The transcription factor to evaluate.')
     parser.add_argument('--bed', '-b', type=str, required=True,
-                        help='BED file containing intervals to predict on.')
+                        help='Sorted BED file containing intervals to predict on.')
     parser.add_argument('--outputfile', '-o', type=str, required=True,
                        help='The output filename.')
     return parser
@@ -65,7 +65,8 @@ def main():
     use_meta = 'meta' in features
     use_gencode = 'gencode' in features
     print 'Loading test data'
-    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(genome, bed_file, use_meta, use_gencode, input_dir)
+    sorted = True
+    bigwig_names, meta_names, datagen_bed, nonblacklist_bools = utils.load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, sorted)
     assert bigwig_names == model_bigwig_names
     if use_meta:
         model_meta_file = model_dir + '/meta.txt'
