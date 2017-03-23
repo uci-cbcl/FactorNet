@@ -533,7 +533,7 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_r
     from keras.layers.wrappers import Bidirectional, TimeDistributed
     forward_input = Input(shape=(L, 4 + num_bws,))
     reverse_input = Input(shape=(L, 4 + num_bws,))
-    if num_recurrent == 0:
+    if num_recurrent < 0:
         hidden_layers = [
             Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
                           filter_length=w, border_mode='valid', activation='relu',
@@ -542,6 +542,20 @@ def make_model(num_tfs, num_bws, num_motifs, num_recurrent, num_dense, dropout_r
             TimeDistributed(Dense(num_motifs, activation='relu')),
             GlobalMaxPooling1D(),
             Dropout(dropout_rate),
+            Dense(num_dense, activation='relu'),
+            Dropout(dropout_rate),
+            Dense(num_tfs, activation='sigmoid')
+        ]
+    elif num_recurrent == 0:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            MaxPooling1D(pool_length=w2, stride=w2),
+            Dropout(dropout_rate),
+            Flatten(),
             Dense(num_dense, activation='relu'),
             Dropout(dropout_rate),
             Dense(num_tfs, activation='sigmoid')
@@ -580,7 +594,7 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
     forward_input = Input(shape=(L, 4 + num_bws,))
     reverse_input = Input(shape=(L, 4 + num_bws,))
     meta_input = Input(shape=(num_meta,))
-    if num_recurrent == 0:
+    if num_recurrent < 0:
         hidden_layers = [
             Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
                           filter_length=w, border_mode='valid', activation='relu',
@@ -589,6 +603,18 @@ def make_meta_model(num_tfs, num_bws, num_meta, num_motifs, num_recurrent, num_d
             TimeDistributed(Dense(num_motifs, activation='relu')),
             GlobalMaxPooling1D(),
             Dropout(dropout_rate),
+            Dense(num_dense, activation='relu'),
+        ]
+    elif num_recurrent == 0:
+        hidden_layers = [
+            Convolution1D(input_dim=4 + num_bws, nb_filter=num_motifs,
+                          filter_length=w, border_mode='valid', activation='relu',
+                          subsample_length=1),
+            Dropout(0.1),
+            TimeDistributed(Dense(num_motifs, activation='relu')),
+            MaxPooling1D(pool_length=w2, stride=w2),
+            Dropout(dropout_rate),
+            Flatten(),
             Dense(num_dense, activation='relu'),
         ]
     else:
