@@ -713,8 +713,10 @@ def inject_pwm(model, pwm):
 
 def load_beddata(genome, bed_file, use_meta, use_gencode, input_dir, is_sorted, chrom=None):
     bed = BedTool(bed_file)
-    print 'Sorting BED file'
-    bed = bed.sort()
+    if not is_sorted:
+        print 'Sorting BED file'
+        bed = bed.sort()
+        is_sorted = True
     blacklist = make_blacklist()
     print 'Determining which windows are valid'
     bed_intersect_blacklist_count = bed.intersect(blacklist, wa=True, c=True, sorted=is_sorted)
