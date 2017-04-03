@@ -89,7 +89,7 @@ def make_argument_parser():
                         help='Number of kernels in model (default: 32).')
     parser.add_argument('--recurrent', '-r', type=int, required=False,
                         default=32,
-                        help='Number of LSTM units in model (default: 32). If set to 0, the bi-directional recurrent layer is replaced with a global max-pooling layer.')
+                        help='Number of LSTM units in model (default: 32). If set to 0, the BLSTM layer is simply removed. If negative, the BLSTM layer is replaced with a global max-pooling layer.')
     parser.add_argument('--dense', '-d', type=int, required=False,
                         default=128,
                         help='Number of dense units in model (default: 128).')
@@ -244,7 +244,9 @@ def main():
             genome, epochs, valid_chroms, test_chroms)
     print 'Building model'
     if num_recurrent == 0:
-        print 'You specified 0 LSTM units. Making non-recurrent model'
+        print 'You specified 0 LSTM units. Omitting BLSTM layer'
+    if num_recurrent < 0:
+        print 'You specified less than 0 LSTM units. Replacing BLSTM layer with global max-pooling layer'
     if meta or gencode:
         num_meta = 0
         if meta:
