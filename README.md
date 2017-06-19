@@ -4,7 +4,7 @@ FactorNet is a neural network model for predicting TF binding. It was one of the
 
 # Citing FactorNet
 
-Quang, D. and Xie, X. ``FactorNet: a deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-resolution sequential data'', In preparation, 2017.
+Quang, D. and Xie, X. ``FactorNet: a deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-resolution sequential data'', In preparation, 2017. [Preprint] (http://biorxiv.org/content/early/2017/06/18/151274)
 
 # INSTALL
 
