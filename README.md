@@ -6,6 +6,8 @@ FactorNet is a neural network model for predicting TF binding. It was one of the
 
 Quang, D. and Xie, X. ``FactorNet: a deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-resolution sequential data'', In preparation, 2017. [Preprint] (http://biorxiv.org/content/early/2017/06/18/151274)
 
+We are currently having difficulty getting the manuscript accepted in any journal. For the time being, please cite biorxiv article.
+
 # INSTALL
 
 FactorNet uses several bleeding edge packages that are sometimes not backwards compatible with older code or packages. Therefore, I have included the most recent version numbers of the packages for the configuration that worked for me. For the record, I am using Ubuntu Linux 14.04 LTS with an NVIDIA Titan X GPU (both Maxwell and Pascal architectures) and 128 GBs of RAM. Theoretically, about 24 GB of ram is needed to train one model, since the current version loads two copies of the genome into memory for efficient sequence extraction. If you would like a slightly slower version that saves memory by reading the genome from hard disk instead of RAM, let me know.
