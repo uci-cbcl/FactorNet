@@ -7,8 +7,8 @@ Data are organized by one cell type per folder. I included data from the 13 cell
 
 Required
 --------
-* [samtools] (https://github.com/samtools/samtools). Useful for manipulating BAM files. If you do genomics, chances are you already have this. Latest version should be sufficient.
-* [deepTools] (https://github.com/fidelram/deepTools). Tools for normalizing read coverage in BAM files. Despite its name, it has nothing to do with deep learning.
+* [samtools](https://github.com/samtools/samtools). Useful for manipulating BAM files. If you do genomics, chances are you already have this. Latest version should be sufficient.
+* [deepTools](https://github.com/fidelram/deepTools). Tools for normalizing read coverage in BAM files. Despite its name, it has nothing to do with deep learning.
 
 ```
 $ ls
@@ -33,31 +33,31 @@ bigWig files
 
 Due to file size limits, bigWig files are not included in this repository. You can download them from the following links. Make sure you place the downloaded bigWig files into their respective folders. It should be straightforward to tell from the file names which files go where. The first track is the 35 bp mapability uniqueness track and belongs in every folder. I highly recommend creating soft links using the ln command so that you are not wasting disk space with multiple copies of the track.
 
-[Duke 35 bp mapability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
+[Duke 35 bp mapability uniqueness](http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
 
-[A549 1x DGF] (https://www.synapse.org/#!Synapse:syn14748607)
+[A549 1x DGF](https://www.synapse.org/#!Synapse:syn14748607)
 
-[GM12878 1x DGF] (https://www.synapse.org/#!Synapse:syn8073652)
+[GM12878 1x DGF](https://www.synapse.org/#!Synapse:syn8073652)
 
-[H1-hESC 1x DGF] (https://www.synapse.org/#!Synapse:syn8073583)
+[H1-hESC 1x DGF](https://www.synapse.org/#!Synapse:syn8073583)
 
-[HCT116 1x DGF] (https://www.synapse.org/#!Synapse:syn8074109)
+[HCT116 1x DGF](https://www.synapse.org/#!Synapse:syn8074109)
 
-[HeLa-S3 1x DGF] (https://www.synapse.org/#!Synapse:syn8073618)
+[HeLa-S3 1x DGF](https://www.synapse.org/#!Synapse:syn8073618)
 
-[HepG2 1x DGF] (https://www.synapse.org/#!Synapse:syn8073517)
+[HepG2 1x DGF](https://www.synapse.org/#!Synapse:syn8073517)
 
-[IMR90 1x DGF] (https://www.synapse.org/#!Synapse:syn14749187)
+[IMR90 1x DGF](https://www.synapse.org/#!Synapse:syn14749187)
 
-[K562 1x DGF] (https://www.synapse.org/#!Synapse:syn8073483)
+[K562 1x DGF](https://www.synapse.org/#!Synapse:syn8073483)
 
-[MCF-7 1x DGF] (https://www.synapse.org/#!Synapse:syn8073537)
+[MCF-7 1x DGF](https://www.synapse.org/#!Synapse:syn8073537)
 
-[PC-3 1x DGF] (https://www.synapse.org/#!Synapse:syn8074140)
+[PC-3 1x DGF](https://www.synapse.org/#!Synapse:syn8074140)
 
-[Panc1 1x DGF] (https://www.synapse.org/#!Synapse:syn8074156)
+[Panc1 1x DGF](https://www.synapse.org/#!Synapse:syn8074156)
 
-[induced pluripotent stem cell 1x DGF] (https://www.synapse.org/#!Synapse:syn8074090)
+[induced pluripotent stem cell 1x DGF](https://www.synapse.org/#!Synapse:syn8074090)
 
-[liver 1x DGF] (https://www.synapse.org/#!Synapse:syn8074181)
+[liver 1x DGF](https://www.synapse.org/#!Synapse:syn8074181)
 
