@@ -35,6 +35,8 @@ Due to file size limits, bigWig files are not included in this repository. You c
 
 [Duke 35 bp mapability uniqueness] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDukeMapabilityUniqueness35bp.bigWig)
 
+[A549 1x DGF] (https://www.synapse.org/#!Synapse:syn14748607)
+
 [GM12878 1x DGF] (https://www.synapse.org/#!Synapse:syn8073652)
 
 [H1-hESC 1x DGF] (https://www.synapse.org/#!Synapse:syn8073583)
@@ -44,6 +46,8 @@ Due to file size limits, bigWig files are not included in this repository. You c
 [HeLa-S3 1x DGF] (https://www.synapse.org/#!Synapse:syn8073618)
 
 [HepG2 1x DGF] (https://www.synapse.org/#!Synapse:syn8073517)
+
+[IMR90 1x DGF] (https://www.synapse.org/#!Synapse:syn14749187)
 
 [K562 1x DGF] (https://www.synapse.org/#!Synapse:syn8073483)
 
