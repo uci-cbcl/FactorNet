@@ -26,7 +26,7 @@ $ # Unfortunately, I neglected the Duke blacklist file at the time I generated t
 
 * chip.txt. Two column tab delimited file describing peak interval files to be used for training. First column is the file names of the gzipped peak BED files and the second column is the name of the transcription factor corresponding to that BED file. Optionally, a third column of the file names of relaxed peaks can be included. If relaxed peak files are included, negative training bins will be drawn from outside of the relaxed peaks; otherwise, negative training bins will be drawn from outside of the conservative peaks.
 
-* meta.txt. Two column tab delimited file describing cell-type specific metadata to be used for training. First column is the metadata value and second column is the identifier names each feature. When leveraging data from multiple cell lines, the identifier names for each cell line must match and be in the same order. In these examples, I used 8 gene expression PCA features. See [here] (https://github.com/davidaknowles/tf_net/blob/master/gene_expression_pca.R) for a description of how those features were generated.
+* meta.txt. Two column tab delimited file describing cell-type specific metadata to be used for training. First column is the metadata value and second column is the identifier names each feature. When leveraging data from multiple cell lines, the identifier names for each cell line must match and be in the same order. In these examples, I used 8 gene expression PCA features. See [here](https://github.com/davidaknowles/tf_net/blob/master/gene_expression_pca.R) for a description of how those features were generated.
 
 bigWig files
 ============
